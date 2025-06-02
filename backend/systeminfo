@@ -1,0 +1,13 @@
+{
+    "BRUCE_VERSION": "dev",
+    "SD": {
+        "free": "1.81 GB",
+        "used": "23.77 MB",
+        "total": "1.84 GB"
+    },
+    "LittleFS": {
+        "free": "2.99 MB",
+        "used": "12.00 kB",
+        "total": "3.00 MB"
+    }
+}

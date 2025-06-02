@@ -1,0 +1,117 @@
+:root {
+    --green: #02de02;
+    --black: #242424;
+}
+* {
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+    font-family: "DejaVu Sans Mono", "Consolas", "Menlo";
+    color: var(--green);
+}
+html {
+    padding: 0;
+    margin: 0;
+}
+body {
+    background-color: var(--black);
+    font-size: 12px;
+    padding: 0;
+    margin: 0;
+}
+.btn-action {
+    border: 1px solid var(--green);
+    background-color: transparent;
+    padding: 2px 7px;
+    cursor: pointer;
+}
+.btn-action:hover,
+.btn-action.active {
+    background-color: var(--green);
+    color: var(--black);
+}
+.icon-action {
+    border: 0;
+    background-color: transparent;
+    width: 24px;
+    height: 24px;
+    padding: 1px;
+    margin: 0;
+    cursor: pointer;
+    text-align: center;
+    vertical-align: middle;
+}
+.icon-action:hover {
+    background-color: var(--green);
+}
+.icon-action:hover svg > g,
+.icon-action:hover svg > path {
+    fill: var(--black);
+}
+.container {
+    max-width: 800px;
+    margin: auto;
+    border: 1px solid var(--green);
+}
+.container .header {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px;
+    border-bottom: 1px solid var(--green);
+    align-items: center;
+    align-content: center;
+}
+.container .header .title {
+    margin: -5px;
+    padding: 9px 12px 9px 14px;
+    border-right: 1px solid var(--green);
+    margin-right: -1px;
+}
+.container .free-space {
+    border-bottom: 1px solid var(--green);
+    justify-content: space-between;
+    display: flex;
+}
+.container .free-space .block-space {
+    width: 50%;
+    border-right: 1px solid var(--green);
+    padding: 5px;
+}
+.container .free-space .block-space:last-child {
+    border: 0px;
+}
+.container .action-content {
+    padding: 5px;
+    border-bottom: 1px solid var(--green);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.container .action-content .breadcrumb {
+    display: flex;
+    align-content: center;
+    gap: 5px;
+    padding-left: 5px;
+}
+.container .content .table {
+    width: 100%;
+    border: 0px;
+    border-collapse: collapse;
+}
+.container .content .table .col-size {
+    width: 90px;
+    text-align: center;
+}
+.container .content .table .col-action {
+    width: 220px;
+    text-align: right;
+}
+.container .content .table tbody tr td {
+    padding: 5px;
+}
+.container .content .table thead tr th {
+    border-bottom: 1px solid var(--green);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px;
+}

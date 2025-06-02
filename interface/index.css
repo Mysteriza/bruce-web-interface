@@ -1,6 +1,7 @@
 :root {
     --green: #02de02;
     --black: #242424;
+    --green-hover: #425f42;
 }
 * {
   -webkit-box-sizing: border-box;
@@ -108,10 +109,18 @@ body {
 }
 .container .content .table tbody tr td {
     padding: 5px;
+    cursor: pointer;
+    height: 34px;
+}
+.container .content .table tbody tr:hover {
+    background-color: var(--green-hover)
 }
 .container .content .table thead tr th {
     border-bottom: 1px solid var(--green);
     font-weight: bold;
     font-size: 14px;
     padding: 5px;
+}
+.table .col-action.type-folder .act-edit {
+    display: none;
 }

@@ -4,7 +4,7 @@ const path = require('path');
 
 const port = 8080;
 const targetDomain = "http://bruce.local";
-const bruceUsername = "bruce";
+const bruceUsername = "admin";
 const brucePassword = "bruce";
 
 // Get folder from command line argument, default to 'interface'

@@ -1,7 +1,7 @@
 :root {
-    --green: #02de02;
+    --green: #ff3ec8;
     --black: #242424;
-    --green-hover: #425f42;
+    --green-hover: color-mix(in srgb, var(--green) 20%, gray 20%);;
 }
 * {
   -webkit-box-sizing: border-box;
@@ -48,6 +48,14 @@ body {
     position: relative;
     overflow: hidden;
 }
+svg > g, svg > path {
+    fill: var(--green);
+}
+.icon-action.act-download svg,
+.icon-action.act-download svg > path{
+    stroke: var(--green);
+    fill: transparent;
+}
 .icon-action:hover {
     background-color: var(--green);
 }
@@ -55,16 +63,16 @@ body {
 .icon-action:hover svg > path {
     fill: var(--black);
 }
+.icon-action.act-download:hover svg,
+.icon-action.act-download:hover svg > path{
+    stroke: var(--black);
+    fill: var(--green);
+}
 .inp-uploader {
     opacity: 0;
     position: absolute;
     cursor: pointer;
     top: 0;
-}
-.icon-action.act-download:hover svg,
-.icon-action.act-download:hover svg > path{
-    stroke: var(--black);
-    fill: var(--green);
 }
 .container {
     max-width: 800px;
@@ -130,7 +138,7 @@ body {
     height: 34px;
 }
 .container .content .table tbody tr:hover {
-    background-color: var(--green-hover)
+    background-color: var(--green-hover);
 }
 .container .content .table thead tr th {
     border-bottom: 1px solid var(--green);

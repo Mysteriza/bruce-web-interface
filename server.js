@@ -3,6 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const port = 8080;
+const targetDomain = "http://bruce.local";
+const bruceUsername = "bruce";
+const brucePassword = "bruce";
 
 // Get folder from command line argument, default to 'interface'
 let folder = process.argv[2] || 'interface';
@@ -21,6 +24,37 @@ if (!fs.existsSync(mainFolderPath) || !fs.statSync(mainFolderPath).isDirectory()
 }
 
 http.createServer((req, res) => {
+  if (targetDomain && req.url.startsWith('/bruce/')) {
+    let realUrl = req.url.replace('/bruce/', '/');
+    const url = new URL(targetDomain + realUrl);
+
+    // Clone headers and add Authorization
+    const headers = Object.assign({}, req.headers);
+    const auth = Buffer.from(`${bruceUsername}:${brucePassword}`).toString('base64');
+    headers['authorization'] = `Basic ${auth}`;
+
+    console.log(`Proxying request to: ${url.href} [${req.method}]`);
+    const proxyReq = http.request({
+      hostname: url.hostname,
+      port: url.port || 80,
+      path: url.pathname + url.search,
+      method: req.method,
+      headers: headers,
+    }, proxyRes => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+
+    proxyReq.on('error', err => {
+      res.writeHead(502, {'Content-Type': 'text/plain'});
+      res.end('Proxy error: ' + err.message);
+    });
+
+    // Pipe the request body to the proxy request
+    req.pipe(proxyReq, { end: true });
+    return;
+  }
+
   const urlPath = req.url.split('?')[0];
   const decodedPath = decodeURIComponent(urlPath);
 

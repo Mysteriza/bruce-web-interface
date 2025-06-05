@@ -23,6 +23,31 @@ if (!fs.existsSync(mainFolderPath) || !fs.statSync(mainFolderPath).isDirectory()
   process.exit(1);
 }
 
+const minify = {
+  html: function (content) {
+    // Remove leading/trailing whitespace from each line
+    let lines = content.split('\n').map(line => line.trim());
+    // Collapse multiple spaces in each line
+    lines = lines.map(line => line.replace(/\s{2,}/g, ' '));
+    // (Optional) Remove empty lines: lines = lines.filter(line => line);
+    // Join lines with newline (keep new lines)
+    content = lines.join('\n');
+    return content;
+  },
+  css: function (content) {
+    let lines = content.split('\n').map(line => line.trim());
+    lines = lines.map(line => line.replace(/\s{2,}/g, ' '));
+    content = lines.join('\n');
+    return content;
+  },
+  js: function (content) {
+    let lines = content.split('\n').map(line => line.trim());
+    lines = lines.map(line => line.replace(/\s{2,}/g, ' '));
+    content = lines.join('\n');
+    return content;
+  }
+};
+
 http.createServer((req, res) => {
   if (targetDomain && req.url.startsWith('/bruce/')) {
     let realUrl = req.url.replace('/bruce/', '/');
@@ -99,7 +124,24 @@ http.createServer((req, res) => {
   }[ext] || 'application/text';
 
   res.writeHead(200, {'Content-Type': mime});
-  fs.createReadStream(filePath).pipe(res);
+
+  // Minify HTML, CSS, JS before serving
+  if (ext === '.html' || ext === '.css' || ext === '.js') {
+    fs.readFile(filePath, 'utf8', (err, data) => {
+      if (err) {
+        res.writeHead(500, {'Content-Type': 'text/plain'});
+        res.end('Internal Server Error');
+        return;
+      }
+      let minified = data;
+      if (ext === '.html') minified = minify.html(data);
+      else if (ext === '.css') minified = minify.css(data);
+      else if (ext === '.js') minified = minify.js(data);
+      res.end(minified, 'utf8');
+    });
+  } else {
+    fs.createReadStream(filePath).pipe(res);
+  }
 }).listen(port, () => {
   console.log(`Server running at http://127.0.0.1:${port}/`);
   console.log(`Serving from folder: ${folder}`);

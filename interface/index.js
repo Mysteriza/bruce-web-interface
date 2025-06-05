@@ -17,7 +17,7 @@ const T = {
     tmp.innerHTML = this.master.content.querySelector('.upload-loading').outerHTML;
     return tmp.content;
   }
-}
+};
 
 const EXECUTABLE = {
   ir: "ir tx_from_file",
@@ -69,7 +69,7 @@ const Dialog = {
         title: "Serial Command",
         label: `Enter command:`
       }
-    }
+    };
 
     let config = dbForm[name];
     if (!config) {
@@ -87,7 +87,7 @@ const Dialog = {
     dialog.querySelector("#oinput-input").focus();
     return dialog;
   }
-}
+};
 
 async function requestGet (url, data) {
   return new Promise((resolve, reject) => {
@@ -164,7 +164,7 @@ async function uploadFile (file) {
         var percent = (e.loaded / e.total) * 100;
         $("#" + fileId).style.width = Math.round(percent) + "%";
       }
-    }
+    };
     req.onload = () => {
       if (req.status >= 200 && req.status < 300) {
         resolve(req.responseText);
@@ -295,7 +295,7 @@ document.querySelectorAll(".inp-uploader").forEach((el) => {
     fetchSystemInfo();
     fetchFiles(currentDrive, currentPath);
   });
-})
+});
 
 $(".container").addEventListener("click", async (e) => {
   let browseAction = e.target.closest(".act-browse");
@@ -453,7 +453,7 @@ $(".act-save-credential").addEventListener("click", async (e) => {
   });
   Dialog.hide();
   alert("Credentials saved successfully!");
-})
+});
 
 $(".act-save-edit-file").addEventListener("click", async (e) => {
   Dialog.show('loading');
@@ -464,7 +464,7 @@ $(".act-save-edit-file").addEventListener("click", async (e) => {
   });
   Dialog.show('editor');
   return;
-})
+});
 
 $(".act-reboot").addEventListener("click", async (e) => {
   e.preventDefault();

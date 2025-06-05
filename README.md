@@ -2,7 +2,9 @@
 
 This project provides a web-based user interface for the Bruce firmware (tested with version 1.10.1). It is designed to serve static web content and simulate backend API responses as provided by the Bruce firmware.
 
-## Project Structure
+For a detailed overview of the project file structure and backend API endpoints, see [STRUCTURE_AND_ENDPOINTS.md](./STRUCTURE_AND_ENDPOINTS.md).
+
+## Project Structure (Summary)
 - `server.js`: Node.js server to serve static files and backend API endpoints.
 - `interface/`: Main web UI files (HTML, CSS, JS).
 - `sample/`: Example web UI files and assets.
@@ -31,10 +33,10 @@ These samples are based on Bruce firmware v1.10.1 and are useful for UI developm
 ## Proxying Requests to a Real Bruce Device
 If you send a request to a path starting with `/bruce/`, the server will emulate a real Bruce device by forwarding your request to the actual device on your network (by default, to `http://bruce.local`).
 
-**IMPORTANT! READ THIS OR IT WON'T WORK:**
+**IMPORTANT!**
 - You MUST edit the file `server.js` and set the correct username and password for your Bruce device. Look for these lines near the top of the file:
   ```js
-  const bruceUsername = "bruce"; // CHANGE THIS to your Bruce device username
+  const bruceUsername = "admin"; // CHANGE THIS to your Bruce device username
   const brucePassword = "bruce"; // CHANGE THIS to your Bruce device password
   ```
 - If you do not set the correct username and password, you will NOT be able to connect to your real Bruce device. The web UI will NOT work with the real device until you do this!

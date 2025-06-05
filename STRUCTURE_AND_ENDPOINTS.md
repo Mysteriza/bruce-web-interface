@@ -16,6 +16,7 @@ BruceWebInterface/
 │   ├── rename
 │   ├── systeminfo
 │   └── wifi
+│   └── upload
 ├── interface/
 │   ├── index.css
 │   ├── index.html
@@ -84,6 +85,16 @@ The server simulates or proxies the following endpoints (see `backend/` for stat
 - Methods: POST
 - Renames a file or folder.
 - Expects POST data: `fs`, `filePath`, `fileName`.
+
+### `/upload`
+- Method: POST
+- Uploads a file to the device.
+- Accepts multipart/form-data with the following fields:
+  - `file`: The file to upload (required)
+  - `folder`: Target folder path (required)
+  - `fs`: Filesystem (e.g., `LittleFS` or `SD`) (required)
+- Used by the UI for file uploads (see `interface/index.js`).
+- Returns a status message or error.
 
 ---
 

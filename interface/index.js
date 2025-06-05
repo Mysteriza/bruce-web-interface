@@ -148,6 +148,7 @@ function stringToId(str) {
 }
 
 const _queueUpload = [];
+let _runningUpload = false;
 function appendFileToQueue(files) {
   Dialog.show('upload');
   let d = $(".dialog.upload");
@@ -184,6 +185,8 @@ async function appendDroppedFiles(entry) {
 }
 async function uploadFile () {
   if (_queueUpload.length === 0) {
+    _runningUpload = false;
+    $(".dialog.upload .dialog-body").innerHTML = "";
     fetchSystemInfo();
     fetchFiles(currentDrive, currentPath);
     Dialog.hide();
@@ -191,6 +194,7 @@ async function uploadFile () {
   }
 
   return new Promise((resolve, reject) => {
+    _runningUpload = true;
     let file = _queueUpload.shift();
     let fd = new FormData();
     let filename = file.webkitRelativePath || file.name;
@@ -316,18 +320,13 @@ $(".upload-area").ondrop = async (e) => {
   const items = e.dataTransfer.items;
   if (!items || items.length === 0) return;
 
-  let isRunning = _queueUpload.length > 0;
-  if (_queueUpload.length === 0) {
-    $(".dialog.upload .dialog-body").innerHTML = "";
-  }
-
   for (let i of items) {
     let entry = i.webkitGetAsEntry();
     if (!entry) continue;
     await appendDroppedFiles(entry);
   }
 
-  if (!isRunning) setTimeout(uploadFile, 100);
+  if (!_runningUpload) setTimeout(uploadFile, 100);
 };
 
 document.querySelectorAll(".inp-uploader").forEach((el) => {
@@ -335,13 +334,9 @@ document.querySelectorAll(".inp-uploader").forEach((el) => {
     let files = e.target.files;
     if (!files || files.length === 0) return;
 
-    let isRunning = _queueUpload.length > 0;
-    if (_queueUpload.length === 0) {
-      $(".dialog.upload .dialog-body").innerHTML = "";
-    }
     appendFileToQueue(files);
     _queueUpload.push(...files);
-    if (!isRunning) uploadFile();
+    if (!_runningUpload) uploadFile();
 
     this.value = "";
   });

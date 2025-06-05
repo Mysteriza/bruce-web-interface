@@ -96,6 +96,12 @@ The server simulates or proxies the following endpoints (see `backend/` for stat
 - Used by the UI for file uploads (see `interface/index.js`).
 - Returns a status message or error.
 
+## Special Stylesheet: `themes.css`
+- `themes.css` is a stylesheet that defines color themes for the UI.
+- It is generated dynamically by the device and served via the `/themes.css` endpoint.
+- When running the server, requests for `/themes.css` are always proxied to the real Bruce device (see `server.js` logic).
+- This ensures the UI always uses the current color theme from the device.
+
 ---
 
 **Note:**

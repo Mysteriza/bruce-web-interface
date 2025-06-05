@@ -49,7 +49,7 @@ const minify = {
 };
 
 http.createServer((req, res) => {
-  if (targetDomain && req.url.startsWith('/bruce/')) {
+  if ((req.url.startsWith('/bruce/') || req.url.startsWith("/theme.css"))) {
     let realUrl = req.url.replace('/bruce/', '/');
     const url = new URL(targetDomain + realUrl);
 

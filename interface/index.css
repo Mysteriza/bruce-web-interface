@@ -30,11 +30,18 @@ body {
     background-color: transparent;
     padding: 2px 7px;
     text-decoration: none;
+    text-align: center;
 }
-.btn-action:hover,
-.btn-action.active {
+.btn-action:hover:not(:disabled),
+.btn-action.active,
+.btn-action:hover:not(:disabled) > *,
+.btn-action.active > * {
     background-color: var(--color);
     color: var(--background);
+}
+.btn-action:disabled  {
+    filter: brightness(50%);
+    cursor: not-allowed;
 }
 .icon-action {
     border: 0;
@@ -102,6 +109,7 @@ svg > g, svg > path {
 }
 .container .free-space .block-space {
     width: 50%;
+    border: 0px;
     border-right: 1px solid var(--color);
     padding: 5px;
 }
@@ -125,6 +133,12 @@ svg > g, svg > path {
     width: 100%;
     border: 0px;
     border-collapse: collapse;
+    table-layout: fixed;
+}
+.container .content .table .col-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .container .content .table .col-size {
     width: 90px;
@@ -176,6 +190,12 @@ svg > g, svg > path {
     padding: 5px 10px;
     font-size: 14px;
     font-weight: bold;
+    align-items: center;
+    display: flex;
+    gap: 5px;
+}
+.dialog .dialog-head span {
+    display: inline-block;
 }
 .dialog .dialog-body {
     padding: 10px 15px;
@@ -194,7 +214,74 @@ svg > g, svg > path {
     border-top: 1px solid var(--color);
     text-align: right;
 }
-.dialog.loading .dialog-body {
+.dialog.navigator {
+    width: 360px;
+}
+.dialog.navigator .navigator-canvas {
+    position: relative;
+    display: flex;
+    width: 100%;
+    margin-bottom: 25px;
+}
+.dialog.navigator .navigator-canvas > div {
+    display: flex;
+    flex-direction: column;
+    height: 80px;
+    justify-content: space-between;
+}
+.dialog.navigator .navigator-canvas .nav {
+    text-align: center;
+    border: 1px solid var(--color);
+    padding: 4px 8px;
+    width: 80px;
+    cursor: pointer;
+}
+.dialog.navigator .navigator-canvas .nav:hover {
+    color: var(--background);
+    background: var(--color);
+}
+.dialog.navigator .navigator-canvas .b-center {
+    flex: 2;
+    position: relative;
+}
+.dialog.navigator .navigator-canvas .b-center .nav {
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    border-radius: 3px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-down svg {
+    transform: rotate(180deg);
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-left svg {
+    transform: rotate(-90deg);
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-right svg {
+    transform: rotate(90deg);
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-up {
+    left: 72px;
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-down {
+    left: 72px;
+    bottom: 0;
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-left {
+    top: 28px;
+    left: 42px;
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-right {
+    top: 28px;
+    right: 42px;
+}
+.dialog.navigator .navigator-canvas .b-center .nav:hover svg path {
+    fill: var(--background);
+}
+.dialog.status .dialog-body {
     padding: 10px 0;
     text-align: center;
 }
@@ -241,14 +328,13 @@ svg > g, svg > path {
 .hidden {
     display: none !important;
 }
-.upload-area {
+.upload-area, .loading-area {
     position: fixed;
     top: 0;
     left: 0;
-    background-color: var(--background);
+    background-color: rgba(0,0,0,.8);
     width: 100%;
     height: 100%;
-    opacity: .7;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -266,4 +352,19 @@ svg > g, svg > path {
     vertical-align: center;
     display: flex;
     align-items: center;
+}
+.loading-area .text {
+    color: var(--color);
+    border: 1px solid var(--color);
+    padding: 10px 20px;
+    min-width: 250px;
+    text-align: center;
+    max-width: 350px;
+    background-color: var(--background);
+}
+.oinput-file-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
 }

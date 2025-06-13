@@ -1,4 +1,4 @@
-function $(s) {return document.querySelector(s)}
+function $(s) { return document.querySelector(s) }
 const IS_DEV = (window.location.host === "127.0.0.1:8080");
 const T = {
   master: $('#t'),
@@ -50,24 +50,43 @@ const Dialog = {
   },
   hide: function () {
     this._bg(false);
+    this.loading.hide();
+  },
+  loading: {
+    show: function (message) {
+      $(".loading-area").classList.remove("hidden");
+      $(".loading-area .text").textContent = message || "Loading...";
+    },
+    hide: function () {
+      $(".loading-area").classList.add("hidden");
+    }
   },
   showOneInput: function (name) {
     const dbForm = {
-      rename: {
-        title: "Rename",
-        label: `New Filename:`
+      renameFolder: {
+        title: "Rename Folder",
+        label: `New Name:`,
+        action: "Rename"
+      },
+      renameFile: {
+        title: "Rename File",
+        label: `New Name:`,
+        action: "Rename"
       },
       createFolder: {
         title: "Create Folder",
-        label: `Folder Name:`
+        label: `Folder Name:`,
+        action: "Create Folder"
       },
       createFile: {
         title: "Create File",
-        label: `File Name:`
+        label: `File Name:`,
+        action: "Create File"
       },
       serial: {
         title: "Serial Command",
-        label: `Enter command:`
+        label: `Command:`,
+        action: "Run"
       }
     };
 
@@ -82,6 +101,7 @@ const Dialog = {
     dialog.querySelector(".oinput-title").textContent = config.title;
     dialog.querySelector(".oinput-label").textContent = config.label;
     dialog.querySelector(".oinput-file-name").textContent = "";
+    dialog.querySelector(".act-save-oinput-file").textContent = config.action;
     this.show('oinput');
     dialog.querySelector("#oinput-input").value = "";
     dialog.querySelector("#oinput-input").focus();
@@ -167,7 +187,7 @@ async function appendDroppedFiles(entry) {
   return new Promise((resolve, reject) => {
     if (entry.isFile) {
       entry.file((file) => {
-        let fileWithPath = new File([file], entry.fullPath.substring(1), {type: file.type});
+        let fileWithPath = new File([file], entry.fullPath.substring(1), { type: file.type });
         appendFileToQueue([fileWithPath]);
         _queueUpload.push(fileWithPath);
         resolve();
@@ -228,13 +248,13 @@ async function uploadFile () {
 }
 
 async function runCommand (cmd) {
-  Dialog.show('loading');
+  Dialog.loading.show('Running command...');
   try {
-    await requestPost("/cm", {cmnd: cmd});
+    await requestPost("/cm", { cmnd: cmd });
   } catch (error) {
     alert("Failed to run command: " + error.message);
   } finally {
-    Dialog.hide();
+    Dialog.loading.hide();
   }
 }
 
@@ -287,8 +307,10 @@ function renderFileRow(fileList) {
     } else if (type === "Fi") {
       e = T.fileRow();
       e.querySelector('.file-row').setAttribute("data-file", dPath);
+      e.querySelector('.act-rename').setAttribute("data-action", "renameFile");
       e.querySelector(".col-name").classList.add("act-edit-file");
       e.querySelector(".col-name").textContent = name;
+      e.querySelector(".col-name").setAttribute("title", name);
       e.querySelector(".col-size").textContent = size;
       e.querySelector(".col-action").classList.add("type-file");
 
@@ -306,7 +328,9 @@ function renderFileRow(fileList) {
       e = T.fileRow();
       e.querySelector(".col-name").classList.add("act-browse");
       e.querySelector('.file-row').setAttribute("data-path", dPath);
+      e.querySelector('.act-rename').setAttribute("data-action", "renameFolder");
       e.querySelector(".col-name").textContent = name;
+      e.querySelector(".col-name").setAttribute("title", name);
       e.querySelector(".col-action").classList.add("type-folder");
     }
     $("table.explorer tbody").appendChild(e);
@@ -321,48 +345,52 @@ async function fetchFiles(drive, path) {
   $(`.act-browse.active`)?.classList.remove("active");
   $(`.act-browse[data-drive='${drive}']`).classList.add("active");
   $(".current-path").textContent = drive + ":/" + path;
-  Dialog.show('loading');
+  Dialog.loading.show('Fetching files...');
   let req = await requestGet("/listfiles", {
     fs: drive,
     folder: path
   });
   renderFileRow(req);
-  Dialog.hide();
+  Dialog.loading.hide();
 }
 
 async function fetchSystemInfo() {
-  Dialog.show('loading');
+  Dialog.loading.show('Fetching system info...');
   let req = await requestGet("/systeminfo");
   let info = JSON.parse(req);
   $(".bruce-version").textContent = info.BRUCE_VERSION;
   $(".free-space .free-sd span").innerHTML = `${info.SD.used} / ${info.SD.total}`;
   $(".free-space .free-fs span").innerHTML = `${info.LittleFS.used} / ${info.LittleFS.total}`;
-  Dialog.hide();
+  Dialog.loading.hide();
 }
 
 async function saveEditorFile(runFile = false) {
-  Dialog.show('loading');
+  Dialog.loading.show('Saving...');
   let editor = $(".dialog.editor .file-content");
-  let oldHash = editor.getAttribute("data-hash");
-  let newHash = calcHash(editor.value);
   let filename = $(".dialog.editor .editor-file-name").textContent.trim();
-
-  if (oldHash !== newHash) {
-    editor.setAttribute("data-hash", newHash);
+  if (isModified(editor)) {
+    $(".act-save-edit-file").disabled = true;
+    editor.setAttribute("data-hash", calcHash(editor.value));
     await requestPost("/edit", {
       fs: currentDrive,
       name: filename,
       content: editor.value
     });
   }
-  
+
   if (runFile) {
     let serial = getSerialCommand(filename);
     if (serial !== undefined) {
       await runCommand(serial + " " + filename);
     }
   }
-  Dialog.show('editor');
+  Dialog.loading.hide();
+}
+
+function isModified(target) {
+  let oldHash = target.getAttribute("data-hash");
+  let newHash = calcHash(target.value);
+  return oldHash !== newHash;
 }
 
 window.ondragenter = () => $(".upload-area").classList.remove("hidden");
@@ -380,7 +408,10 @@ $(".upload-area").ondrop = async (e) => {
     await appendDroppedFiles(entry);
   }
 
-  if (!_runningUpload) setTimeout(uploadFile, 100);
+  if (!_runningUpload) setTimeout(() => {
+    if (_queueUpload.length === 0) return;
+    uploadFile();
+  }, 100);
 };
 
 document.querySelectorAll(".inp-uploader").forEach((el) => {
@@ -422,10 +453,12 @@ $(".container").addEventListener("click", async (e) => {
     editor.value = "";
 
     // Load file content
-    Dialog.show('loading');
+    Dialog.loading.show('Fetching content...');
     let r = await requestGet(`/file?fs=${currentDrive}&name=${encodeURIComponent(file)}&action=edit`);
     editor.value = r;
     editor.setAttribute("data-hash", calcHash(r));
+
+    $(".act-save-edit-file").disabled = true;
 
     let serial = getSerialCommand(file);
     if (serial === undefined) {
@@ -434,6 +467,7 @@ $(".container").addEventListener("click", async (e) => {
       $(".act-run-edit-file").classList.remove("hidden");
     }
 
+    Dialog.loading.hide();
     Dialog.show('editor');
     return;
   }
@@ -446,15 +480,19 @@ $(".container").addEventListener("click", async (e) => {
 
     let filePath = currentPath;
     let d = Dialog.showOneInput(action);
-    if (action === "rename") {
-      filePath = oActionOInput.closest(".file-row").getAttribute("data-file");
+    if (action.startsWith("rename")) {
+      let row = oActionOInput.closest("tr");
+      filePath = row.getAttribute("data-file") || row.getAttribute("data-path");
     } else if (action === "serial") {
       filePath = "";
     }
 
     d.setAttribute("data-cache", `${action}|${filePath}`);
     if (filePath != "") {
-      d.querySelector(".oinput-file-name").textContent = ": " + filePath;
+      let fName = filePath.substring(filePath.lastIndexOf("/") + 1);
+      let fNameSpan = d.querySelector(".oinput-file-name");
+      fNameSpan.textContent = ": " + fName;
+      fNameSpan.setAttribute("title", fName);
     }
 
     return;
@@ -469,12 +507,13 @@ $(".container").addEventListener("click", async (e) => {
 
     if (!confirm(`Are you sure you want to DELETE ${file}?\n\nTHIS ACTION CANNOT BE UNDONE!`)) return;
 
-    Dialog.show('loading');
+    Dialog.loading.show('Deleting...');
     await requestGet("/file", {
       fs: currentDrive,
       action: 'delete',
       name: file
     });
+    Dialog.loading.hide();
     fetchSystemInfo();
     fetchFiles(currentDrive, currentPath);
     return;
@@ -494,9 +533,9 @@ $(".container").addEventListener("click", async (e) => {
 
 
 $(".dialog-background").addEventListener("click", async (e) => {
-  e.preventDefault();
   if (e.target.matches(".act-dialog-close")) {
-    Dialog.hide(false);
+    e.preventDefault();
+    Dialog.hide();
     return;
   }
 });
@@ -515,16 +554,17 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
     return;
   }
 
-  Dialog.show('loading');
   let refreshList = true;
   let [actionType, path] = action.split("|");
-  if (actionType === "rename") {
+  if (actionType.startsWith("rename")) {
+    Dialog.loading.show('Renaming...');
     await requestPost("/rename", {
       fs: currentDrive,
       filePath: path,
       fileName: fileName
     });
   } else if (actionType === "createFolder") {
+    Dialog.loading.show('Creating Folder...');
     let urlQuery = new URLSearchParams({
       fs: currentDrive,
       action: "create",
@@ -532,6 +572,7 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
     });
     await requestGet("/file?" + urlQuery.toString());
   } else if (actionType === "createFile") {
+    Dialog.loading.show('Creating File...');
     let urlQuery = new URLSearchParams({
       fs: currentDrive,
       action: "createfile",
@@ -539,11 +580,13 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
     });
     await requestGet("/file?" + urlQuery.toString());
   } else if (actionType === "serial") {
+    Dialog.loading.show('Running Serial Command...');
     await runCommand(fileName);
     refreshList = false; // No need to refresh file list for serial commands
   }
 
   if (refreshList) fetchFiles(currentDrive, currentPath);
+  Dialog.hide();
 });
 
 $(".act-save-credential").addEventListener("click", async (e) => {
@@ -554,12 +597,12 @@ $(".act-save-credential").addEventListener("click", async (e) => {
     return;
   }
 
-  Dialog.show('loading');
+  Dialog.loading.show('Saving WiFi Credentials...');
   await requestGet("/wifi", {
     usr: username,
     pwd: password
   });
-  Dialog.hide();
+  Dialog.loading.hide();
   alert("Credentials saved successfully!");
 });
 
@@ -574,11 +617,23 @@ $(".act-run-edit-file").addEventListener("click", async (e) => {
 $(".act-reboot").addEventListener("click", async (e) => {
   e.preventDefault();
   if (!confirm("Are you sure you want to REBOOT the device?")) return;
-  Dialog.show('loading');
+  Dialog.loading.show('Rebooting...');
   await requestGet("/reboot");
   setTimeout(() => {
     location.reload();
   }, 1000);
+});
+
+$(".navigator-canvas").addEventListener("click", async (e) => {
+  let nav = e.target.matches(".nav") ? e.target : e.target.closest(".nav");
+  if (nav === null) return;
+
+  let direction = nav.getAttribute("data-direction");
+  if (direction === "Menu") {
+    direction = "Sel 500";
+  }
+
+  await runCommand(`nav ${direction.toLowerCase()}`);
 });
 
 window.addEventListener("keydown", async (e) => {
@@ -589,7 +644,7 @@ window.addEventListener("keydown", async (e) => {
       e.stopImmediatePropagation();
 
       await saveEditorFile();
-    } else if ((e.altKey || e.metaKey) && key === "enter") {
+    } else if (e.altKey && key === "enter") {
       e.preventDefault();
       e.stopImmediatePropagation();
 
@@ -598,8 +653,17 @@ window.addEventListener("keydown", async (e) => {
   }
 
   if (key === "escape") {
-    if ($(".dialog-background:not(.hidden)") && $(".dialog.loading.hidden,.dialog.upload.hidden")) {
-      Dialog.hide();
+    if ($(".dialog-background:not(.hidden)") && !$(".loading-area:not(.hidden),.dialog.upload:not(.hidden)")) {
+      if ($(".dialog.editor:not(.hidden)")) {
+        let editor = $(".dialog.editor .file-content");
+        if (isModified(editor)) {
+          if (!confirm("You have unsaved changes. Do you want to discard them?")) {
+            return;
+          }
+        }
+      }
+
+      Dialog.hide('editor');
       return;
     }
   }
@@ -626,6 +690,8 @@ $(".file-content").addEventListener("keyup", function (e) {
     this.selectionStart = cursorPos;
     this.selectionEnd = cursorPos;
   }
+
+  $(".act-save-edit-file").disabled = !isModified(e.target);
 });
 
 (async function () {

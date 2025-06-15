@@ -393,6 +393,68 @@ function isModified(target) {
   return oldHash !== newHash;
 }
 
+async function runNavigation(direction) {
+  const screen = $(".navigator-screen");
+
+  screen.querySelector(".loading").classList.remove("hidden");
+  try {
+    let r = await requestPost("/cm", { cmnd: `nav ${direction.toLowerCase()}` });
+    let d = JSON.parse(r);
+
+    screen.querySelector(".screen:not(.hidden)").classList.add("hidden");
+    let navScreen = screen.querySelector(`.nav-${d.menu}`);
+    navScreen.classList.remove("hidden");
+
+    let prevIndex = d.active - 1;
+    if (prevIndex < 0) prevIndex = d.options.length - 1;
+    let nextIndex = d.active + 1;
+    if (nextIndex >= d.options.length) nextIndex = 0;
+
+    if (d.menu === "main_menu") {
+      navScreen.innerHTML = "";
+      for (let i of [prevIndex, d.active, nextIndex]) {
+        let item = d.options[i];
+        let label = item.label;
+        if (i === prevIndex) label = label.substring(label.length - 3);
+        if (i === nextIndex) label = label.substring(0, 3);
+        let itemEl = document.createElement("div");
+        itemEl.textContent = label;
+        navScreen.appendChild(itemEl);
+      }
+    } else if (d.menu === "sub_menu") {
+      navScreen.querySelector(".title").textContent = d.menu_title;
+      navScreen.querySelector(".menu").innerHTML = "";
+      for (let i of [prevIndex, d.active, nextIndex]) {
+        let item = d.options[i];
+        let itemEl = document.createElement("div");
+        itemEl.textContent = item.label;
+        navScreen.querySelector(".menu").appendChild(itemEl);
+      }
+    } else if (d.menu === "regular_menu") {
+      let startIndex = 0;
+      if (d.active > 4) startIndex = d.active - 4;
+      navScreen.querySelector(".box").innerHTML = "";
+      for (let i = startIndex; i < d.options.length && i < startIndex + 5; i++) {
+        let item = d.options[i];
+        let itemEl = document.createElement("div");
+        itemEl.textContent = item.label;
+        if (i == d.active) itemEl.classList.add("active");
+        navScreen.querySelector(".box").appendChild(itemEl);
+      }
+    }
+  } catch (error) {
+    alert("Failed to run command: " + error.message);
+    console.error(error)
+  } finally {
+    screen.querySelector(".loading").classList.add("hidden");
+  }
+}
+
+async function openNavigator() {
+  Dialog.show('navigator');
+  await runNavigation("Esc");
+}
+
 window.ondragenter = () => $(".upload-area").classList.remove("hidden");
 $(".upload-area").ondragleave = () => $(".upload-area").classList.add("hidden");
 $(".upload-area").ondragover = (e) => e.preventDefault();
@@ -633,7 +695,7 @@ $(".navigator-canvas").addEventListener("click", async (e) => {
     direction = "Sel 500";
   }
 
-  await runCommand(`nav ${direction.toLowerCase()}`);
+  await runNavigation(direction.toLowerCase());
 });
 
 window.addEventListener("keydown", async (e) => {
@@ -649,6 +711,27 @@ window.addEventListener("keydown", async (e) => {
       e.stopImmediatePropagation();
 
       await saveEditorFile(true);
+    }
+  }
+
+  if ($(".dialog.navigator:not(.hidden)")) {
+    const map_navigator = {
+      "arrowup": "Up",
+      "arrowdown": "Down",
+      "arrowleft": "Prev",
+      "arrowright": "Next",
+      "enter": "Sel",
+      "backspace": "Esc",
+      "m": "Menu",
+      "pageup": "NextPage",
+      "pagedown": "PrevPage"
+    };
+
+    if (key in map_navigator) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      $(`.navigator-canvas .nav[data-direction="${map_navigator[key]}"]`).click();
+      return;
     }
   }
 

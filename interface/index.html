@@ -16,7 +16,7 @@
         <span class="title" onclick="Dialog.show('info')">Bruce [<span class="bruce-version">dev</span>]</span>
         <button class="btn-action act-cred" onclick="Dialog.show('credential')">Credential</button>
         <button class="btn-action act-oinput" data-action="serial">Serial Cmd</button>
-        <button class="btn-action act-navigation" onclick="Dialog.show('navigator')">Navigator</button>
+        <button class="btn-action act-navigation" onclick="openNavigator()">Navigator</button>
       </div>
       <div class="right-part">
         <button class="btn-action act-reboot">Reboot</button>
@@ -159,38 +159,74 @@
       <div class="dialog-head">Uploading</div>
       <div class="dialog-body"></div>
     </div>
+    <div class="dialog navigator-shortcut">
+      <div class="dialog-head">Navigator Shortcut</div>
+      <div class="dialog-body">
+        <p>You can use shortcut in keyboard for navigating instead of click the button</p>
+        <ul>
+          <li>Arrow Pad = Navigating</li>
+          <li>Back = Backspace</li>
+          <li>OK = Enter</li>
+          <li>Menu = M</li>
+          <li>Page Up = Page Up</li>
+          <li>Page Down = Page Down</li>
+          <li>Close Navigator = Escape</li>
+        </ul>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn-action" onclick="Dialog.show('navigator')">Close</button>
+      </div>
+    </div>
     <div class="dialog navigator">
       <div class="dialog-head">Device Navigator</div>
       <div class="dialog-body">
+        <div class="navigator-screen">
+          <div class="screen hidden nav-main_menu">
+          </div>
+          <div class="screen hidden nav-sub_menu">
+            <div class="title"></div>
+            <div class="menu"></div>
+          </div>
+          <div class="screen hidden nav-regular_menu">
+            <div class="box"></div>
+          </div>
+          <div class="screen loading hidden"></div>
+        </div>
         <div class="navigator-canvas">
           <div class="b-left">
             <div class="nav" data-direction="NextPage">Page Up</div>
             <div class="nav" data-direction="PrevPage">Page Down</div>
           </div>
           <div class="b-center">
-            <div class="nav nav-up" data-direction="Up">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
-                <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
-              </svg>
+            <div class="p-up">
+              <div class="nav nav-up" data-direction="Up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
+                  <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
+                </svg>
+              </div>
             </div>
-            <div class="nav nav-down" data-direction="Down">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
-                <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
-              </svg>
+            <div class="p-mid">
+              <div class="nav nav-left" data-direction="Prev">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
+                  <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
+                </svg>
+              </div>
+              <div class="nav nav-ok" data-direction="Sel"></div>
+              <div class="nav nav-right" data-direction="Next">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
+                  <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
+                </svg>
+              </div>
             </div>
-            <div class="nav nav-left" data-direction="Prev">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
-                <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
-              </svg>
-            </div>
-            <div class="nav nav-right" data-direction="Next">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
-                <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
-              </svg>
+            <div class="p-bot">
+              <div class="nav nav-down" data-direction="Down">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512">
+                  <path fill="currentColor" d="M256 63.6L0 319.6l69.8 69.8L256 203.2l186.2 186.2l69.8-69.8z" />
+                </svg>
+              </div>
             </div>
           </div>
           <div class="b-right">
-            <div class="nav" data-direction="Sel">Select</div>
             <div class="nav" data-direction="Menu">Menu</div>
             <div class="nav" data-direction="Esc">Back</div>
           </div>
@@ -200,6 +236,7 @@
         </p>
       </div>
       <div class="dialog-footer">
+        <button class="btn-action" onclick="Dialog.show('navigator-shortcut')">Shortcut</button>
         <button class="btn-action act-dialog-close">Close</button>
       </div>
     </div>

@@ -215,7 +215,7 @@ svg > g, svg > path {
     text-align: right;
 }
 .dialog.navigator {
-    width: 360px;
+    width: 352px;
 }
 .dialog.navigator .navigator-canvas {
     position: relative;
@@ -226,14 +226,14 @@ svg > g, svg > path {
 .dialog.navigator .navigator-canvas > div {
     display: flex;
     flex-direction: column;
-    height: 80px;
+    height: 90px;
     justify-content: space-between;
 }
 .dialog.navigator .navigator-canvas .nav {
     text-align: center;
     border: 1px solid var(--color);
-    padding: 4px 8px;
-    width: 80px;
+    padding: 6px 8px;
+    width: 90px;
     cursor: pointer;
 }
 .dialog.navigator .navigator-canvas .nav:hover {
@@ -243,16 +243,35 @@ svg > g, svg > path {
 .dialog.navigator .navigator-canvas .b-center {
     flex: 2;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 .dialog.navigator .navigator-canvas .b-center .nav {
-    width: 24px;
-    height: 24px;
-    position: absolute;
+    width: 28px;
+    height: 28px;
     border-radius: 3px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+.dialog.navigator .navigator-canvas .b-center > div {
+    display: flex;
+    justify-content: center;
+}
+.dialog.navigator .navigator-canvas .b-center .p-mid {
+    justify-content: center;
+    gap: 5px;
+    margin: auto;
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-ok:before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    background-color: var(--color);
+    border-radius: 100%;
 }
 .dialog.navigator .navigator-canvas .b-center .nav.nav-down svg {
     transform: rotate(180deg);
@@ -263,23 +282,11 @@ svg > g, svg > path {
 .dialog.navigator .navigator-canvas .b-center .nav.nav-right svg {
     transform: rotate(90deg);
 }
-.dialog.navigator .navigator-canvas .b-center .nav.nav-up {
-    left: 72px;
-}
-.dialog.navigator .navigator-canvas .b-center .nav.nav-down {
-    left: 72px;
-    bottom: 0;
-}
-.dialog.navigator .navigator-canvas .b-center .nav.nav-left {
-    top: 28px;
-    left: 42px;
-}
-.dialog.navigator .navigator-canvas .b-center .nav.nav-right {
-    top: 28px;
-    right: 42px;
-}
 .dialog.navigator .navigator-canvas .b-center .nav:hover svg path {
     fill: var(--background);
+}
+.dialog.navigator .navigator-canvas .b-center .nav.nav-ok:hover:before {
+    background-color: var(--background);
 }
 .dialog.status .dialog-body {
     padding: 10px 0;
@@ -367,4 +374,101 @@ svg > g, svg > path {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 250px;
+}
+.navigator-screen {
+    width: 320px;
+    height: 130px;
+    border: 1px solid var(--color);
+    margin-bottom: 15px;
+    position: relative;
+}
+.navigator-screen .nav-main_menu {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navigator-screen .nav-main_menu > div {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--sec-color);
+}
+.navigator-screen .nav-main_menu > div:nth-child(2) {
+    font-size: 28px;
+    color: var(--color);
+    position: initial;
+    text-align: center;
+    max-width: 200px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.navigator-screen .nav-sub_menu {
+    position: relative;
+    height: 100%;
+}
+.navigator-screen .nav-sub_menu .title {
+    position: absolute;
+    left: 8px;
+    top: 5px;
+}
+.navigator-screen .nav-sub_menu .menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    gap: 10px;
+}
+.navigator-screen .nav-sub_menu .menu div {
+    font-size: 18px;
+    color: var(--sec-color);
+}
+.navigator-screen .nav-sub_menu .menu div:nth-child(2) {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--color);
+}
+.navigator-screen .nav-regular_menu {
+    padding: 15px;
+    position: relative;
+    height: 100%;
+}
+.navigator-screen .nav-regular_menu .box {
+    content: "";
+    border: 1px solid var(--color);
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+}
+.navigator-screen .nav-regular_menu div {
+    font-size: 14px;
+    padding-left: 15px;
+    position: relative;
+}
+.navigator-screen .nav-regular_menu div.active:before {
+    content: "";
+    background-color: var(--color);
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+    position: absolute;
+    border-radius: 100%;
+    top: 3px;
+    left: 0px;
+}
+.navigator-screen .loading {
+    position: absolute;
+    background-color: rgba(0,0,0,.9);
+    width: 100%;
+    height: 100%;
+    top: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.navigator-screen .loading:before {
+    content: "Navigating....";
 }

@@ -17,7 +17,7 @@ html {
 body {
     background-color: var(--background);
     font-size: 12px;
-    padding: 0;
+    padding: 10px;
     margin: 0;
 }
 .act-browse, .btn-action,
@@ -198,7 +198,10 @@ svg > g, svg > path {
     display: inline-block;
 }
 .dialog .dialog-body {
-    padding: 10px 15px;
+    padding: 10px;
+}
+.dialog .dialog-body p:first-child {
+    margin-top: 0;
 }
 .dialog .dialog-body input {
     display: block;
@@ -292,6 +295,15 @@ svg > g, svg > path {
     padding: 10px 0;
     text-align: center;
 }
+.dialog.setting .dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.dialog.setting .dialog-body .btn-action {
+    display: block;
+    padding: 6px 5px;
+}
 .dialog.editor {
     width: 100%;
     max-width: 100%;
@@ -376,7 +388,6 @@ svg > g, svg > path {
     max-width: 250px;
 }
 .navigator-screen {
-    width: 320px;
     height: 130px;
     border: 1px solid var(--color);
     margin-bottom: 15px;

@@ -14,13 +14,11 @@
     <div class="header">
       <div class="left-part">
         <span class="title" onclick="Dialog.show('info')">Bruce [<span class="bruce-version">dev</span>]</span>
-        <button class="btn-action act-cred" onclick="Dialog.show('credential')">Credential</button>
         <button class="btn-action act-oinput" data-action="serial">Serial Cmd</button>
         <button class="btn-action act-navigation" onclick="openNavigator()">Navigator</button>
       </div>
       <div class="right-part">
-        <button class="btn-action act-reboot">Reboot</button>
-        <a href="/logout" class="btn-action">x</a>
+        <button class="btn-action" onclick="Dialog.show('setting')">Setting</button>
       </div>
     </div>
     <div class="free-space">
@@ -159,6 +157,17 @@
       <div class="dialog-head">Uploading</div>
       <div class="dialog-body"></div>
     </div>
+    <div class="dialog setting">
+      <div class="dialog-head">Settings</div>
+      <div class="dialog-body">
+        <button class="btn-action act-cred" onclick="Dialog.show('credential')">Change WebUI Credentials</button>
+        <button class="btn-action act-reboot">Reboot</button>
+        <button onclick="window.location.href='/logout'" class="btn-action">Log Out</button>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn-action act-dialog-close act-escape">Close</button>
+      </div>
+    </div>
     <div class="dialog navigator-shortcut">
       <div class="dialog-head">Navigator Shortcut</div>
       <div class="dialog-body">
@@ -174,7 +183,7 @@
         </ul>
       </div>
       <div class="dialog-footer">
-        <button class="btn-action" onclick="Dialog.show('navigator')">Close</button>
+        <button class="btn-action act-escape" onclick="Dialog.show('navigator')">Close</button>
       </div>
     </div>
     <div class="dialog navigator">
@@ -237,7 +246,7 @@
       </div>
       <div class="dialog-footer">
         <button class="btn-action" onclick="Dialog.show('navigator-shortcut')">Shortcut</button>
-        <button class="btn-action act-dialog-close">Close</button>
+        <button class="btn-action act-dialog-close act-escape">Close</button>
       </div>
     </div>
     <div class="dialog info">
@@ -252,7 +261,7 @@
         </p>
       </div>
       <div class="dialog-footer">
-        <button class="btn-action act-dialog-close">Close</button>
+        <button class="btn-action act-dialog-close act-escape">Close</button>
       </div>
     </div>
     <div class="dialog oinput">
@@ -266,7 +275,7 @@
       </div>
       <div class="dialog-footer">
         <button class="btn-action act-save-oinput-file">Save</button>
-        <button class="btn-action act-dialog-close">Close</button>
+        <button class="btn-action act-dialog-close act-escape">Close</button>
       </div>
     </div>
     <div class="dialog credential">
@@ -275,13 +284,13 @@
       </div>
       <div class="dialog-body">
         <label for="oinput-input" class="oinput-label">Username</label>
-        <input type="text" id="cred-username">
+        <input type="text" id="cred-username" style="margin-bottom: 10px">
         <label for="oinput-input" class="oinput-label">Password</label>
         <input type="text" id="cred-password">
       </div>
       <div class="dialog-footer">
         <button class="btn-action act-save-credential">Save</button>
-        <button class="btn-action act-dialog-close">Close</button>
+        <button class="btn-action act-escape" onclick="Dialog.show('setting')">Close</button>
       </div>
     </div>
     <div class="dialog editor">
@@ -292,7 +301,7 @@
       <div class="dialog-footer">
         <button class="btn-action act-save-edit-file" title="CTRL + S">Save</button>
         <button class="btn-action act-run-edit-file" title="ALT + ENTER">Run</button>
-        <button class="btn-action act-dialog-close">Close</button>
+        <button class="btn-action act-dialog-close act-escape">Close</button>
       </div>
     </div>
   </div>
@@ -302,5 +311,4 @@
   <div class="upload-area hidden"></div>
   <script src="/index.js"></script>
 </body>
-
 </html>

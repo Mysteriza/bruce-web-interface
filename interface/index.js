@@ -736,7 +736,7 @@ window.addEventListener("keydown", async (e) => {
   }
 
   if (key === "escape") {
-    if ($(".dialog-background:not(.hidden)") && !$(".loading-area:not(.hidden),.dialog.upload:not(.hidden)")) {
+    if ($(".dialog-background:not(.hidden)")) {
       if ($(".dialog.editor:not(.hidden)")) {
         let editor = $(".dialog.editor .file-content");
         if (isModified(editor)) {
@@ -746,7 +746,8 @@ window.addEventListener("keydown", async (e) => {
         }
       }
 
-      Dialog.hide('editor');
+      let btnEscape = $(".dialog:not(.hidden) .act-escape");
+      if (btnEscape) btnEscape.click();
       return;
     }
   }

@@ -415,10 +415,12 @@ async function runNavigation(direction) {
   }
 }
 
+const btnForceReload = $("#force-reload");
 let SCREEN_RELOAD = false;
 async function reloadScreen() {
   if (SCREEN_RELOAD) return;
   SCREEN_RELOAD = true;
+  btnForceReload.classList.add("reloading");
   try {
     let screenReq = await requestGet("/getscreen");
     let screenData = JSON.parse(screenReq);
@@ -427,6 +429,7 @@ async function reloadScreen() {
     console.error("Failed to reload screen:", error);
     alert("Failed to reload screen: " + error.message);
   } finally {
+    btnForceReload.classList.remove("reloading");
     SCREEN_RELOAD = false;
   }
 }
@@ -678,10 +681,10 @@ function drawCanvasLoading() {
 
   // Draw "Loading" text in the center
   ctx.fillStyle = "#fff";
-  ctx.font = "bold 18px 'DejaVu Sans Mono', Consolas, Menlo";
+  ctx.font = "bold 14px 'DejaVu Sans Mono', Consolas, Menlo";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("Loading..", width / 2, height / 2);
+  ctx.fillText("Navigating...", width / 2, height / 2);
   ctx.restore();
 }
 
@@ -693,7 +696,7 @@ eConfigAutoReload.addEventListener("change", async (e) => {
   sessionStorage.setItem("autoReload", eConfigAutoReload.value);
 });
 
-$("#force-reload").addEventListener("click", async (e) => {
+btnForceReload.addEventListener("click", async (e) => {
   e.preventDefault();
   drawCanvasLoading();
   await reloadScreen();

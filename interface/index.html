@@ -188,14 +188,21 @@
     </div>
     <div class="dialog navigator">
       <div class="dialog-head">
-        Device Navigator
-        <select id="navigator-auto-reload">
-          <option value="0">Reload After Navigate</option>
-          <option value="1000">Auto Reload: 1s</option>
-          <option value="2000">Auto Reload: 2s</option>
-          <option value="5000">Auto Reload: 5s</option>
-          <option value="10000">Auto Reload: 10s</option>
-        </select>
+        <span>Device Navigator</span>
+        <div>
+          <button id="force-reload" class="btn-action">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C9.69494 21 7.59227 20.1334 6 18.7083L3 16M3 12C3 7.02944 7.02944 3 12 3C14.3051 3 16.4077 3.86656 18 5.29168L21 8M3 21V16M3 16H8M21 3V8M21 8H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <select id="navigator-auto-reload">
+            <option value="0">Reload After Navigate</option>
+            <option value="1000">Auto Reload: 1s</option>
+            <option value="2000">Auto Reload: 2s</option>
+            <option value="5000">Auto Reload: 5s</option>
+            <option value="10000">Auto Reload: 10s</option>
+          </select>
+        </div>
       </div>
       <div class="dialog-body">
         <canvas id="navigator-screen"></canvas>
@@ -256,13 +263,8 @@
         </div>
       </div>
       <div class="dialog-footer">
-        <div>
-          <button id="force-reload" class="btn-action">Reload Screen</button>
-        </div>
-        <div>
-          <button class="btn-action" onclick="Dialog.show('navigator-shortcut')">Shortcut</button>
-          <button class="btn-action act-dialog-close act-escape">Close</button>
-        </div>
+        <button class="btn-action" onclick="Dialog.show('navigator-shortcut')">Shortcut</button>
+        <button class="btn-action act-dialog-close act-escape">Close</button>
       </div>
     </div>
     <div class="dialog info">

@@ -108,10 +108,6 @@ http.createServer((req, res) => {
         res.end('Internal Server Error');
         return;
       }
-      let minified = data;
-      if (ext === '.html') minified = minify.html(data);
-      else if (ext === '.css') minified = minify.css(data);
-      else if (ext === '.js') minified = minify.js(data);
       res.end(data, 'utf8');
     });
   } else {

@@ -23,31 +23,6 @@ if (!fs.existsSync(mainFolderPath) || !fs.statSync(mainFolderPath).isDirectory()
   process.exit(1);
 }
 
-const minify = {
-  html: function (content) {
-    // Remove leading/trailing whitespace from each line
-    let lines = content.split('\n').map(line => line.trim());
-    // Collapse multiple spaces in each line
-    lines = lines.map(line => line.replace(/\s{2,}/g, ' '));
-    // (Optional) Remove empty lines: lines = lines.filter(line => line);
-    // Join lines with newline (keep new lines)
-    content = lines.join('\n');
-    return content;
-  },
-  css: function (content) {
-    let lines = content.split('\n').map(line => line.trim());
-    lines = lines.map(line => line.replace(/\s{2,}/g, ' '));
-    content = lines.join('\n');
-    return content;
-  },
-  js: function (content) {
-    let lines = content.split('\n').map(line => line.trim());
-    lines = lines.map(line => line.replace(/\s{2,}/g, ' '));
-    content = lines.join('\n');
-    return content;
-  }
-};
-
 http.createServer((req, res) => {
   if ((req.url.startsWith('/bruce/') || req.url.startsWith("/theme.css"))) {
     let realUrl = req.url.replace('/bruce/', '/');
@@ -137,7 +112,7 @@ http.createServer((req, res) => {
       if (ext === '.html') minified = minify.html(data);
       else if (ext === '.css') minified = minify.css(data);
       else if (ext === '.js') minified = minify.js(data);
-      res.end(minified, 'utf8');
+      res.end(data, 'utf8');
     });
   } else {
     fs.createReadStream(filePath).pipe(res);

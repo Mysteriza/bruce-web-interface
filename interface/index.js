@@ -21,7 +21,7 @@ const T = {
 
 const EXECUTABLE = {
   ir: "ir tx_from_file",
-  sub: "subghz tx_from_file",
+  sub: "subghz tx_from_from_file",
   js: "js run_from_file",
   bjs: "js run_from_file",
   txt: "badusb run_from_file",
@@ -41,6 +41,8 @@ const Dialog = {
       bg.classList.remove("hidden");
     } else {
       bg.classList.add("hidden");
+      // Hide profile menu when any other dialog is opened/closed
+      $(".profile-menu")?.classList.add("hidden");
     }
   },
   show: function (dialogName) {
@@ -141,7 +143,7 @@ async function requestPost (url, data) {
     }
 
     let realUrl = url;
-    if (IS_DEV) realUrl = "/bruce" + url;
+    if (IS_DEV) realUrl = "/bruce" + realUrl;
     let req = new XMLHttpRequest();
     req.open("POST", realUrl, true);
     req.onload = () => {
@@ -304,6 +306,7 @@ function renderFileRow(fileList) {
       if (preFolder === "") preFolder = "/";
       e.querySelector(".path-row").setAttribute("data-path", preFolder);
       e.querySelector(".path-row td").classList.add("act-browse");
+      e.querySelector(".path-row td").textContent = ".."; // Ensure ".." is displayed
     } else if (type === "Fi") {
       e = T.fileRow();
       e.querySelector('.file-row').setAttribute("data-file", dPath);
@@ -335,7 +338,65 @@ function renderFileRow(fileList) {
     }
     $("table.explorer tbody").appendChild(e);
   });
+  // After rendering, check for long names and apply marquee
+  applyMarqueeToLongNames();
 }
+
+// Function to apply marquee effect
+function applyMarqueeToLongNames() {
+  const fileNames = document.querySelectorAll(".file-row .col-name");
+  fileNames.forEach(colName => {
+    // Reset any previous animation state
+    colName.style.animation = '';
+    colName.style.transform = '';
+    colName.classList.remove('marquee');
+
+    const parentTd = colName.closest('td');
+    if (!parentTd) return;
+
+    // We need to temporarily remove nowrap to measure natural width,
+    // but this might cause reflow issues. A better way is to measure
+    // the width of the parent container that constrains the text,
+    // and the intrinsic width of the text itself.
+    // For simplicity, let's assume parentTd.offsetWidth is the container.
+    // However, for running text, we need the actual text width.
+
+    // Create a temporary span to measure text width
+    const tempSpan = document.createElement('span');
+    tempSpan.style.visibility = 'hidden';
+    tempSpan.style.position = 'absolute';
+    tempSpan.style.whiteSpace = 'nowrap';
+    tempSpan.textContent = colName.textContent;
+    document.body.appendChild(tempSpan);
+    const textWidth = tempSpan.offsetWidth;
+    document.body.removeChild(tempSpan);
+
+    const containerWidth = colName.offsetWidth; // This is the visible width of the column
+
+    // Get the actions container width to subtract from available space for name
+    const actionContainer = colName.closest('.file-row').querySelector('.col-action');
+    const sizeContainer = colName.closest('.file-row').querySelector('.col-size');
+    let reservedWidth = 0;
+    if (actionContainer && window.getComputedStyle(actionContainer).display !== 'none') {
+        reservedWidth += actionContainer.offsetWidth;
+    }
+    if (sizeContainer && window.getComputedStyle(sizeContainer).display !== 'none') {
+        reservedWidth += sizeContainer.offsetWidth;
+    }
+
+    // Rough calculation of available width for the name, considering actions and size
+    // This is still tricky in a flex layout where things wrap.
+    // For now, let's compare intrinsic text width with its assigned flex basis
+    // or the parent's current constrained width.
+    // Let's refine this to target when the text *actually* overflows the `col-name`'s visible area.
+    if (colName.scrollWidth > colName.clientWidth + 5) { // Add a small buffer
+      colName.classList.add('marquee');
+      // Set a CSS variable for the animation to use
+      colName.style.setProperty('--marquee-offset', `calc(${colName.scrollWidth - colName.clientWidth}px + 10px)`); // Offset by overflow amount + buffer
+    }
+  });
+}
+
 
 let currentDrive;
 let currentPath;
@@ -837,6 +898,15 @@ $(".container").addEventListener("click", async (e) => {
     actPlay.blur();
     await runCommand(cmd);
     return;
+  }
+
+  // Toggle profile menu
+  if (e.target.closest(".act-profile-menu")) {
+    e.preventDefault();
+    $(".profile-menu").classList.toggle("hidden");
+  } else if (!e.target.closest(".profile-menu") && !$(".profile-menu").classList.contains("hidden")) {
+    // Click outside profile menu, hide it
+    $(".profile-menu").classList.add("hidden");
   }
 });
 

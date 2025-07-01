@@ -21,7 +21,7 @@ const T = {
 
 const EXECUTABLE = {
   ir: "ir tx_from_file",
-  sub: "subghz tx_from_from_file",
+  sub: "subghz tx_from_file",
   js: "js run_from_file",
   bjs: "js run_from_file",
   txt: "badusb run_from_file",

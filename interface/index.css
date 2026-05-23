@@ -99,8 +99,9 @@ svg > g, svg > path {
     fill: var(--color);
 }
 
-svg {
-  stroke: currentColor;
+svg > line, svg > polyline, svg > polygon {
+    stroke: var(--color);
+    fill: none;
 }
 
 .icon-action.act-download svg,
@@ -115,17 +116,28 @@ svg {
 
 .icon-action:hover svg > g,
 .icon-action:hover svg > path {
-    fill: var(--background) !important;
+    fill: var(--background);
 }
 
-.icon-action:hover svg polygon {
-  fill: var(--background) !important;
+.icon-action:hover svg > line,
+.icon-action:hover svg > polyline,
+.icon-action:hover svg > polygon {
+    stroke: var(--background);
+    fill: none;
+}
+
+.icon-action.act-delete:hover {
+  background-color: #d32f2f;
+}
+
+.icon-action.act-delete:active {
+  background-color: #b71c1c;
 }
 
 .icon-action.act-download:hover svg,
 .icon-action.act-download:hover svg > path{
     stroke: var(--background);
-    fill: var(--background);
+    fill: var(--color);
 }
 
 .inp-uploader {
@@ -136,6 +148,7 @@ svg {
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: 1;
 }
 
 .container {
@@ -143,8 +156,10 @@ svg {
     margin: auto;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
     background: var(--surface);
+}
+
+.container .content {
 }
 
 .container .header {
@@ -197,7 +212,7 @@ svg {
     width: 50%;
     border: 0px;
     border-right: 1px solid var(--border);
-    padding: 7px 10px;
+    padding: 7px 10px 7px 8px;
     text-overflow: ellipsis;
     white-space: nowrap;
     display: flex;
@@ -226,7 +241,7 @@ svg {
 }
 
 .container .action-content {
-    padding: 5px 10px;
+    padding: 5px 10px 5px 8px;
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
@@ -258,31 +273,61 @@ svg {
 
 .container .content .table {
     width: 100%;
-    border: 0px;
+    border: 0;
     border-collapse: collapse;
     table-layout: fixed;
+}
+
+.container .content .table .col-check {
+    width: 40px;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .container .content .table .col-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-left: 4px;
+    padding-right: 8px;
 }
 
 .container .content .table .col-size {
     width: 90px;
     text-align: right;
+    padding-right: 16px;
+    font-size: 0.75rem;
+    opacity: 0.6;
 }
 
 .container .content .table .col-action {
-    width: 130px;
+    width: 152px;
     text-align: right;
+    white-space: nowrap;
+    padding-right: 10px;
+}
+
+.container .content .table .col-action .icon-action {
+  margin-left: 2px;
+}
+
+.container .content .table .col-action .icon-action:first-child {
+  margin-left: 0;
 }
 
 .container .content .table tbody tr td {
-    padding: 5px 10px;
+    padding: 5px 4px;
     height: 34px;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+    vertical-align: middle;
+}
+
+.container .content .table tbody tr td:first-child {
+    padding-left: 8px;
+}
+
+.container .content .table tbody tr td:last-child {
+    padding-right: 10px;
 }
 
 .container .content .table tbody tr:last-child td {
@@ -297,10 +342,18 @@ svg {
     border-bottom: 1px solid var(--border);
     font-weight: 600;
     font-size: 0.8rem;
-    padding: 8px 10px;
+    padding: 8px 4px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     user-select: none;
+}
+
+.container .content .table thead tr th:first-child {
+    padding-left: 8px;
+}
+
+.container .content .table thead tr th:last-child {
+    padding-right: 10px;
 }
 
 .table .col-action.type-folder .act-download,
@@ -325,15 +378,13 @@ svg {
 }
 
 .path-row td {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  padding-left: 52px !important;
 }
 
 .file-row .col-name {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* DIALOG SYSTEM */
@@ -509,43 +560,38 @@ svg {
     transition: background 0.12s ease;
 }
 
-.dialog.navigator .navigator-canvas .nav.nav-page-up svg {
-    transform: rotate(-90deg);
-}
 
-.dialog.navigator .navigator-canvas .nav.nav-page-down svg {
-    transform: rotate(90deg);
-}
-
-.dialog.navigator .navigator-canvas .nav.nav-down svg {
-    transform: rotate(180deg);
-}
-
-.dialog.navigator .navigator-canvas .nav.nav-left svg {
-    transform: rotate(-90deg);
-}
-
-.dialog.navigator .navigator-canvas .nav.nav-right svg {
-    transform: rotate(90deg);
-}
 
 .dialog.navigator .navigator-canvas .nav:hover {
-    color: var(--background) !important;
+    background: color-mix(in srgb, var(--color) 12%, var(--surface));
+    border-color: color-mix(in srgb, var(--color) 40%, transparent);
+}
+
+.dialog.navigator .navigator-canvas .nav:hover svg {
+    transform: scale(1.15);
+}
+
+.dialog.navigator .navigator-canvas .nav:active {
     background: var(--color);
     border-color: var(--color);
 }
 
-.dialog.navigator .navigator-canvas .nav:hover svg path,
-.dialog.navigator .navigator-canvas .nav:hover svg line,
-.dialog.navigator .navigator-canvas .nav:hover svg polyline {
+.dialog.navigator .navigator-canvas .nav:active svg path,
+.dialog.navigator .navigator-canvas .nav:active svg line,
+.dialog.navigator .navigator-canvas .nav:active svg polyline {
     stroke: var(--background);
 }
 
-.dialog.navigator .navigator-canvas .nav:hover svg circle {
+.dialog.navigator .navigator-canvas .nav:active svg circle {
     stroke: var(--background);
 }
 
 .dialog.navigator .navigator-canvas .nav.nav-ok:hover:before {
+    background-color: var(--color);
+    opacity: 0.6;
+}
+
+.dialog.navigator .navigator-canvas .nav.nav-ok:active:before {
     background-color: var(--background);
 }
 
@@ -900,8 +946,12 @@ svg {
     padding: 4px 8px;
   }
 
+  .container .content .table .col-check {
+    width: 34px;
+  }
+
   .container .content .table .col-action {
-    width: 115px;
+    width: 136px;
   }
 
   .container .content .table .col-size {
@@ -909,8 +959,28 @@ svg {
   }
 
   .container .content .table tbody tr td {
-    padding: 4px 8px;
+    padding: 4px 3px;
     height: 30px;
+  }
+
+  .container .content .table tbody tr td:first-child {
+    padding-left: 6px;
+  }
+
+  .container .content .table tbody tr td:last-child {
+    padding-right: 6px;
+  }
+
+  .container .content .table thead tr th {
+    padding: 6px 3px;
+  }
+
+  .container .content .table thead tr th:first-child {
+    padding-left: 6px;
+  }
+
+  .container .content .table thead tr th:last-child {
+    padding-right: 6px;
   }
 
   .dialog {
@@ -957,3 +1027,154 @@ svg {
     border-bottom: 0;
   }
 }
+
+/* ---- NEW: Search input ---- */
+.search-input {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  width: 140px;
+  outline: none;
+  transition: border-color 0.15s ease, width 0.2s ease;
+}
+.search-input:focus {
+  border-color: var(--color);
+  width: 180px;
+}
+.search-input::placeholder {
+  color: color-mix(in srgb, var(--color) 40%, transparent);
+}
+@media (max-width: 640px) {
+  .search-input { width: 80px; font-size: 0.75rem; }
+  .search-input:focus { width: 120px; }
+}
+
+/* ---- NEW: Checkbox input styling ---- */
+.file-checkbox, #select-all {
+  accent-color: var(--color);
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- NEW: Batch action bar ---- */
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--color) 8%, var(--surface));
+  font-size: 0.8rem;
+}
+.batch-bar .batch-count {
+  flex: 1;
+  font-weight: 600;
+}
+.batch-bar .btn-action {
+  font-size: 0.75rem;
+  padding: 3px 10px;
+}
+.batch-delete { border-color: #ff4444 !important; color: #ff4444 !important; }
+.batch-delete:hover { background: #ff4444 !important; color: var(--background) !important; }
+
+/* ---- NEW: Theme dot indicator ---- */
+.theme-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--color);
+  margin-right: 4px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.theme-dot:hover {
+  transform: scale(1.4);
+}
+
+/* ---- NEW: Row selected state ---- */
+.file-row.selected {
+  background: color-mix(in srgb, var(--color) 12%, var(--surface)) !important;
+}
+.file-row.selected td {
+  border-bottom-color: color-mix(in srgb, var(--color) 20%, var(--border));
+}
+
+/* ---- NEW: Chunked upload indicator ---- */
+.chunk-info {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+/* ---- NEW: Logout button (danger/destructive style) ---- */
+.btn-logout {
+  border-color: #ff4444 !important;
+  color: #ff4444 !important;
+}
+.btn-logout:hover:not(:disabled) {
+  background: #ff4444 !important;
+  color: var(--background) !important;
+}
+
+/* ---- NEW: Danger button variant (for delete actions in dialogs) ---- */
+.btn-action.btn-danger {
+  border-color: #ff4444 !important;
+  color: #ff4444 !important;
+}
+.btn-action.btn-danger:hover:not(:disabled) {
+  background: #ff4444 !important;
+  color: var(--background) !important;
+}
+
+/* ---- NEW: Theme-consistent select inputs ---- */
+select {
+  background-color: var(--background);
+  color: var(--color);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+select:focus {
+  border-color: var(--color);
+}
+select option {
+  background-color: var(--surface);
+  color: var(--color);
+}
+
+/* ---- NEW: Theme-consistent tooltip style (uses title attribute) ---- */
+[title] {
+  position: relative;
+}
+[title]:hover:after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  color: var(--color);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  z-index: 300;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+

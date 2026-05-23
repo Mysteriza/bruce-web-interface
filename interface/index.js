@@ -29,6 +29,26 @@ const EXECUTABLE = {
   wav: "play"
 };
 
+/* ---- NEW: Theme CSS Cache ---- */
+const ThemeCache = {
+  key: 'bruce_theme',
+  async init() {
+    try {
+      var r = await fetch('/theme.css');
+      var css = await r.text();
+      localStorage.setItem(this.key, css);
+    } catch(e) {
+      // offline / dev mode — cached version used if available
+    }
+  },
+  updateDot() {
+    var dot = document.getElementById('theme-dot');
+    if (!dot) return;
+    var color = getComputedStyle(document.documentElement).getPropertyValue('--color').trim();
+    if (color) dot.style.background = color;
+  }
+};
+
 /* ---- NEW: Toast notification system ---- */
 const Toast = {
   show(message, type, duration) {
@@ -318,7 +338,7 @@ async function runCommand (cmd) {
     await requestPost("/cm", { cmnd: cmd });
     Toast.success("Command executed");
   } catch (error) {
-    Toast.error("Failed to run command: " + error.message);
+    Toast.error("Command failed. Make sure the device is connected.");
   } finally {
     Dialog.loading.hide();
   }
@@ -420,7 +440,7 @@ async function fetchFiles(drive, path) {
     });
     renderFileRow(req);
   } catch (e) {
-    Toast.error("Failed to load files: " + e.message);
+    Toast.error("Could not load file list. Make sure the device is connected and try again.");
   }
   Dialog.loading.hide();
 }
@@ -436,7 +456,7 @@ async function fetchSystemInfo() {
     if (sdEl) sdEl.innerHTML = (info.SD ? info.SD.used + " / " + info.SD.total : "0 MB");
     if (fsEl) fsEl.innerHTML = (info.LittleFS ? info.LittleFS.used + " / " + info.LittleFS.total : "0 MB");
   } catch (e) {
-    Toast.error("Failed to get system info: " + e.message);
+    Toast.error("Could not retrieve device info. The device may be disconnected.");
   }
   Dialog.loading.hide();
 }
@@ -456,7 +476,7 @@ async function saveEditorFile(runFile = false) {
       });
       Toast.success("File saved");
     } catch (e) {
-      Toast.error("Save failed: " + e.message);
+      Toast.error("Could not save the file. Check your connection and try again.");
     }
   }
 
@@ -490,7 +510,7 @@ async function runNavigation(direction) {
     await requestPost("/cm", { cmnd: "nav " + direction.toLowerCase() });
     await reloadScreen();
   } catch (error) {
-    Toast.error("Navigation failed: " + error.message);
+    Toast.error("Navigation command failed. The device may not be responding.");
   } finally {
     SCREEN_NAVIGATING = false;
   }
@@ -504,7 +524,7 @@ async function reloadScreen() {
   btnForceReload.classList.add("reloading");
   try {
     let screenReq = await requestGet("/getscreen");
-    let screenData = JSON.parse(screenReq);
+    var screenData = JSON.parse(screenReq);
     await renderTFT(screenData);
   } catch (error) {
     console.error("Failed to reload screen:", error);
@@ -813,7 +833,7 @@ document.querySelectorAll(".inp-uploader").forEach((el) => {
     _queueUpload.push(...files);
     if (!_runningUpload) uploadFile();
 
-    this.value = "";
+    e.target.value = "";
   });
 });
 
@@ -858,7 +878,7 @@ $(".container").addEventListener("click", async (e) => {
         $(".act-run-edit-file").classList.remove("hidden");
       }
     } catch (err) {
-      Toast.error("Failed to load file: " + err.message);
+      Toast.error("Could not open the file. It may have been deleted or moved.");
     }
 
     Dialog.loading.hide();
@@ -916,7 +936,7 @@ $(".container").addEventListener("click", async (e) => {
       });
       Toast.success("Deleted: " + file);
     } catch (err) {
-      Toast.error("Delete failed: " + err.message);
+      Toast.error("Could not delete the file. It may be locked or protected.");
     }
     Dialog.loading.hide();
     fetchSystemInfo();
@@ -991,7 +1011,7 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
       refreshList = false;
     }
   } catch (err) {
-    Toast.error("Operation failed: " + err.message);
+    Toast.error("Something went wrong. Please try again.");
   }
 
   if (refreshList) fetchFiles(currentDrive, currentPath);
@@ -1015,7 +1035,7 @@ $(".act-save-credential").addEventListener("click", async (e) => {
     Toast.success("Credentials saved!");
     Dialog.hide();
   } catch (err) {
-    Toast.error("Failed to save: " + err.message);
+    Toast.error("Could not save credentials. Check the device connection.");
   }
   Dialog.loading.hide();
 });
@@ -1046,26 +1066,28 @@ $(".act-reboot").addEventListener("click", async (e) => {
       location.reload();
     }, 1000);
   } catch (err) {
-    Toast.error("Reboot failed: " + err.message);
+    Toast.error("Could not reboot the device. It may be disconnected.");
     Dialog.loading.hide();
   }
 });
 
-/* ---- OVERRIDE: Logout with confirmation ---- */
-var logoutBtn = document.querySelector('.dialog.setting .btn-action:last-child');
-if (logoutBtn && logoutBtn.textContent.trim() === "Log Out") {
-  logoutBtn.onclick = null;
+/* ---- NEW: Standalone Logout button with redirect to login ---- */
+var logoutBtn = document.getElementById("btn-logout");
+if (logoutBtn) {
   logoutBtn.addEventListener("click", async function (e) {
     e.preventDefault();
     var confirmed = await Dialog.confirm({
       title: "Log Out",
       message: "Are you sure you want to <strong>log out</strong> of the WebUI?",
       confirmText: "Log Out",
-      danger: false
+      danger: true
     });
     if (!confirmed) return;
     Dialog.loading.show('Logging out...');
-    try { await requestGet("/logout"); } catch (x) { /* ignore */ }
+    try {
+      await requestGet("/logout");
+    } catch (x) { /* ignore */ }
+    // Redirect to login page — clear any session state
     window.location.href = '/logout';
   });
 }
@@ -1217,7 +1239,333 @@ $(".dialog-background").addEventListener("click", function (e) {
   }
 });
 
+/* ---- NEW: Client-side search/filter ---- */
+var searchInput = document.getElementById("search-input");
+if (searchInput) {
+  searchInput.addEventListener("input", function () {
+    var q = this.value.toLowerCase().trim();
+    var rows = document.querySelectorAll("#file-tbody .file-row, #file-tbody .path-row");
+    rows.forEach(function (row) {
+      if (!q) { row.style.display = ""; return; }
+      if (row.classList.contains("path-row")) { row.style.display = q ? "none" : ""; return; }
+      var name = (row.querySelector(".col-name") || {}).textContent || "";
+      row.style.display = name.toLowerCase().indexOf(q) !== -1 ? "" : "none";
+    });
+  });
+}
+
+/* ---- NEW: Multi-select with batch actions ---- */
+var _selectedFiles = {};
+var batchBar = document.getElementById("batch-bar");
+var batchCount = document.getElementById("batch-count");
+var batchDelete = document.getElementById("batch-delete");
+var batchDeselect = document.getElementById("batch-deselect");
+var selectAll = document.getElementById("select-all");
+
+function updateBatchBar() {
+  var count = Object.keys(_selectedFiles).length;
+  if (count > 0) {
+    batchBar.classList.remove("hidden");
+    batchCount.textContent = count + " selected";
+  } else {
+    batchBar.classList.add("hidden");
+    if (selectAll) selectAll.checked = false;
+  }
+}
+
+document.addEventListener("change", function (e) {
+  var cb = e.target.closest(".file-checkbox");
+  if (!cb) return;
+  var row = cb.closest(".file-row");
+  if (!row) return;
+  var path = cb.dataset.path || row.getAttribute("data-file") || row.getAttribute("data-path");
+  if (!path) return;
+  if (cb.checked) {
+    _selectedFiles[path] = true;
+    row.classList.add("selected");
+  } else {
+    delete _selectedFiles[path];
+    row.classList.remove("selected");
+  }
+  updateBatchBar();
+});
+
+if (selectAll) {
+  selectAll.addEventListener("change", function () {
+    var checked = this.checked;
+    _selectedFiles = {};
+    document.querySelectorAll("#file-tbody .file-row").forEach(function (row) {
+      var cb = row.querySelector(".file-checkbox");
+      var path = row.getAttribute("data-file") || row.getAttribute("data-path");
+      if (!cb || !path) return;
+      cb.checked = checked;
+      if (checked) {
+        _selectedFiles[path] = true;
+        row.classList.add("selected");
+      } else {
+        row.classList.remove("selected");
+      }
+    });
+    updateBatchBar();
+  });
+}
+
+if (batchDeselect) {
+  batchDeselect.addEventListener("click", function () {
+    _selectedFiles = {};
+    document.querySelectorAll("#file-tbody .file-row .file-checkbox").forEach(function (cb) {
+      cb.checked = false;
+      cb.closest(".file-row").classList.remove("selected");
+    });
+    updateBatchBar();
+  });
+}
+
+if (batchDelete) {
+  batchDelete.addEventListener("click", async function () {
+    var paths = Object.keys(_selectedFiles);
+    if (paths.length === 0) return;
+    var confirmed = await Dialog.confirm({
+      title: "Batch Delete",
+      message: "Delete <strong>" + paths.length + "</strong> selected file(s)?<br><br>This <strong>cannot be undone</strong>.",
+      confirmText: "Delete All",
+      danger: true
+    });
+    if (!confirmed) return;
+    Dialog.loading.show("Deleting " + paths.length + " files...");
+    var errors = 0;
+    for (var i = 0; i < paths.length; i++) {
+      try {
+        await requestGet("/file", { fs: currentDrive, action: "delete", name: paths[i] });
+      } catch (e) { errors++; }
+    }
+    Dialog.loading.hide();
+    if (errors === 0) Toast.success("Deleted " + paths.length + " files");
+    else Toast.error(errors + " file(s) failed to delete");
+    _selectedFiles = {};
+    fetchSystemInfo();
+    fetchFiles(currentDrive, currentPath);
+  });
+}
+
+/* ---- NEW: Render file list in chunks (non-blocking for large dirs) ---- */
+var _renderChunkSize = 50;
+function renderFileRowChunked(fileList, doneCallback) {
+  var tbody = $("table.explorer tbody");
+  tbody.innerHTML = "";
+  _selectedFiles = {};
+  updateBatchBar();
+
+  var lines = fileList.split("\n").filter(function (l) { return l.trim(); });
+  lines.sort(function (a, b) {
+    var aT = a.split(':')[0], bT = b.split(':')[0];
+    if (aT !== bT) return bT.localeCompare(aT);
+    return a.substring(a.indexOf(':') + 1).toLowerCase().localeCompare(b.substring(b.indexOf(':') + 1).toLowerCase());
+  });
+
+  var idx = 0;
+  var tmpl = document.getElementById("t");
+
+  function renderNext() {
+    var end = Math.min(idx + _renderChunkSize, lines.length);
+    var fragment = document.createDocumentFragment();
+
+    for (; idx < end; idx++) {
+      var line = lines[idx];
+      var parts = line.split(':');
+      var type = parts[0];
+      if (parts.length < 3) continue;
+      var size = parts.pop();
+      var name = parts.slice(1).join(':');
+      var dPath = ((currentPath.endsWith("/") ? currentPath : currentPath + "/") + name).replace(/\/\//g, "/");
+
+      if (type === "pa") {
+        if (dPath === "/") continue;
+        var er = tmpl.content.querySelector(".path-row").cloneNode(true);
+        var preF = currentPath.substring(0, currentPath.lastIndexOf('/')) || "/";
+        er.setAttribute("data-path", preF);
+        er.querySelector("td").classList.add("act-browse");
+        fragment.appendChild(er);
+      } else if (type === "Fi" || type === "Fo") {
+        var er2 = tmpl.content.querySelector(".file-row").cloneNode(true);
+        er2.querySelector(".file-checkbox").dataset.path = dPath;
+        if (type === "Fo") {
+          er2.querySelector(".col-name").classList.add("act-browse");
+          er2.setAttribute("data-path", dPath);
+          er2.querySelector(".col-action").classList.add("type-folder");
+          er2.querySelector('.act-rename').setAttribute("data-action", "renameFolder");
+        } else {
+          er2.setAttribute("data-file", dPath);
+          er2.querySelector('.act-rename').setAttribute("data-action", "renameFile");
+          er2.querySelector(".col-name").classList.add("act-edit-file");
+          er2.querySelector(".col-action").classList.add("type-file");
+          var dlUrl = "/file?fs=" + currentDrive + "&name=" + encodeURIComponent(dPath) + "&action=download";
+          if (IS_DEV) dlUrl = "/bruce" + dlUrl;
+          er2.querySelector(".act-download").setAttribute("download", name);
+          er2.querySelector(".act-download").setAttribute("href", dlUrl);
+          var sc = getSerialCommand(name);
+          if (sc) {
+            er2.querySelector(".act-play").setAttribute("data-cmd", sc + " " + dPath);
+            er2.querySelector(".col-action").classList.add("executable");
+          }
+          er2.querySelector(".col-size").textContent = size;
+        }
+        er2.querySelector(".col-name").textContent = name;
+        er2.querySelector(".col-name").setAttribute("title", name);
+        fragment.appendChild(er2);
+      }
+    }
+
+    tbody.appendChild(fragment);
+
+    if (idx < lines.length) {
+      setTimeout(renderNext, 0);
+    } else if (doneCallback) {
+      doneCallback();
+    }
+  }
+
+  if (lines.length === 0) {
+    if (doneCallback) doneCallback();
+    return;
+  }
+  renderNext();
+}
+
+/* ---- NEW: Override renderFileRow to use chunked version ---- */
+var _origRenderFileRow = renderFileRow;
+renderFileRow = function (fileList) {
+  renderFileRowChunked(fileList, function () {
+    // restore select-all state after re-render
+    if (searchInput) searchInput.value = "";
+  });
+};
+
+/* ---- NEW: Chunked upload for large files ---- */
+var CHUNK_SIZE = 256 * 1024; // 256KB
+function uploadFileChunked(file) {
+  return new Promise(function (resolve, reject) {
+    var fileId = stringToId((file.webkitRelativePath || file.name) + '_chunked');
+    var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    var chunkIndex = 0;
+
+    function sendChunk() {
+      var start = chunkIndex * CHUNK_SIZE;
+      var end = Math.min(start + CHUNK_SIZE, file.size);
+      var blob = file.slice(start, end);
+      var fd = new FormData();
+      var filename = (file.webkitRelativePath || file.name) + '.chunk';
+      fd.append("file", blob, filename);
+      fd.append("folder", currentPath);
+      fd.append("fs", currentDrive);
+      fd.append("chunkIndex", chunkIndex);
+      fd.append("totalChunks", totalChunks);
+      fd.append("originalName", file.webkitRelativePath || file.name);
+
+      var realUrl = "/upload";
+      if (IS_DEV) realUrl = "/bruce" + realUrl;
+      var req = new XMLHttpRequest();
+      req.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          var bar = document.getElementById(fileId);
+          if (bar) {
+            var overallPct = ((chunkIndex * CHUNK_SIZE + e.loaded) / file.size) * 100;
+            bar.style.width = Math.min(100, Math.round(overallPct)) + "%";
+          }
+        }
+      };
+      req.onload = function () {
+        if (req.status >= 200 && req.status < 300) {
+          chunkIndex++;
+          if (chunkIndex < totalChunks) {
+            sendChunk();
+          } else {
+            resolve();
+          }
+        } else {
+          reject(new Error("Chunk upload failed at " + chunkIndex));
+        }
+      };
+      req.onerror = function () { reject(new Error("Network error")); };
+      req.onabort = function () { reject(new Error("Aborted")); };
+      req.open("POST", realUrl, true);
+      req.send(fd);
+    }
+
+    sendChunk();
+  });
+}
+
+// Override upload to use chunked for large files
+var _origUploadFile = uploadFile;
+uploadFile = function () {
+  if (_queueUpload.length === 0) {
+    _runningUpload = false;
+    $(".dialog.upload .dialog-body").innerHTML = "";
+    fetchSystemInfo();
+    fetchFiles(currentDrive, currentPath);
+    Dialog.hide();
+    return;
+  }
+  return new Promise(function (resolve, reject) {
+    _runningUpload = true;
+    var file = _queueUpload.shift();
+    var filename = file.webkitRelativePath || file.name;
+    var fileId = stringToId(filename);
+
+    // Show progress bar for this file
+    var bar = document.getElementById(fileId);
+
+    function onDone(err) {
+      uploadFile(); // process next in queue
+      if (err) reject(err);
+      else resolve();
+    }
+
+    if (file.size > CHUNK_SIZE * 2) {
+      // Large file: use chunked upload
+      var chunkFileId = stringToId(filename + '_chunked');
+      // Add chunk info to existing progress bar if available
+      var existingBar = document.getElementById(chunkFileId);
+      if (!existingBar && bar) bar.id = chunkFileId;
+
+      uploadFileChunked(file).then(function () { onDone(null); }).catch(function (e) { onDone(e); });
+    } else {
+      // Small file: normal upload
+      var fd = new FormData();
+      fd.append("file", file, filename);
+      fd.append("folder", currentPath);
+      fd.append("fs", currentDrive);
+      var realUrl = "/upload";
+      if (IS_DEV) realUrl = "/bruce" + realUrl;
+      var req = new XMLHttpRequest();
+      req.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          var pct = Math.round((e.loaded / e.total) * 100);
+          var progressEl = document.getElementById(fileId);
+          if (progressEl) progressEl.style.width = pct + "%";
+        }
+      };
+      req.onload = function () {
+        if (req.status >= 200 && req.status < 300) onDone(null);
+        else onDone(new Error("Upload failed"));
+      };
+      req.onabort = function () { onDone(new Error("Aborted")); };
+      req.onerror = function () { onDone(new Error("Network error")); };
+      req.open("POST", realUrl, true);
+      req.send(fd);
+    }
+  });
+};
+
+/* ---- Init ---- */
 (async function () {
+  // Cache theme.css in background
+  setTimeout(function () { ThemeCache.init(); }, 100);
+
+  // Show theme color dot
+  setTimeout(function () { ThemeCache.updateDot(); }, 500);
+
   await fetchSystemInfo();
   await fetchFiles("LittleFS", "/");
 })();

@@ -168,10 +168,22 @@
       <div class="dialog-head">Uploading</div>
       <div class="dialog-body"></div>
     </div>
+    <div class="dialog logviewer hidden">
+      <div class="dialog-head">Log Viewer</div>
+      <div class="dialog-body">
+        <pre class="log-output" id="log-output">Waiting for logs...</pre>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn-action" id="log-clear">Clear</button>
+        <button class="btn-action" id="log-toggle">Pause</button>
+        <button class="btn-action act-dialog-close act-escape">Close</button>
+      </div>
+    </div>
     <div class="dialog setting hidden">
       <div class="dialog-head">Settings</div>
       <div class="dialog-body">
         <button class="btn-action act-cred" onclick="Dialog.show('credential')">Change WebUI Credentials</button>
+        <button class="btn-action" onclick="LogViewer.open()">Log Viewer</button>
         <button class="btn-action act-reboot">Reboot</button>
       </div>
       <div class="dialog-footer">
@@ -266,9 +278,16 @@
           environments where you are not allowed. All responsibilities for irresponsible usage of this firmware rest on
           your fin, sharky.</p>
         <p>Sincerely, Bruce.</p>
-        <p>You can also help develop the WebUI interface using <a href="https://github.com/lshaf/bruce-web-interface"
-            target="_blank">Bruce WebUI Interface</a> by <a href="https://github.com/lshaf" target="_blank">lshaf</a>.
-        </p>
+        <p>You can also help develop the WebUI interface using <a href="https://github.com/lshaf/bruce-web-interface" target="_blank">&ldquo;Bruce WebUI Interface&rdquo;</a> by lshaf or <a href="https://github.com/Mysteriza/bruce-web-interface" target="_blank">&ldquo;Bruce WebUI Interface&rdquo;</a> by Mysteriza.</p>
+        <div class="sys-info" id="sys-info">
+          <hr>
+          <div class="sys-row"><span class="sys-label">Firmware</span><span class="sys-value" id="sys-version">--</span></div>
+          <div class="sys-row"><span class="sys-label">SD Card</span><span class="sys-value" id="sys-sd">--</span></div>
+          <div class="sys-row"><span class="sys-label">LittleFS</span><span class="sys-value" id="sys-lfs">--</span></div>
+          <div class="sys-row"><span class="sys-label">Uptime</span><span class="sys-value" id="sys-uptime">--</span></div>
+          <div class="sys-row"><span class="sys-label">Battery</span><span class="sys-value" id="sys-battery">--</span></div>
+          <div class="sys-row"><span class="sys-label">Free Heap</span><span class="sys-value" id="sys-heap">--</span></div>
+        </div>
       </div>
       <div class="dialog-footer">
         <button class="btn-action act-dialog-close act-escape">Close</button>
@@ -296,7 +315,7 @@
         <label for="oinput-input" class="oinput-label">Username</label>
         <input type="text" id="cred-username" style="margin-bottom: 10px">
         <label for="oinput-input" class="oinput-label">Password</label>
-        <input type="text" id="cred-password">
+        <input type="password" id="cred-password">
       </div>
       <div class="dialog-footer">
         <button class="btn-action act-save-credential">Save</button>

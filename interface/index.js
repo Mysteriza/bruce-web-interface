@@ -3,33 +3,15 @@ const _TMPL = $('#t');
 const IS_DEV = (window.location.host === "127.0.0.1:8080");
 
 /* ---- Login Auth ---- */
-let _authToken = null;
 let _loginTesting = false;
 
-function loginGetToken(user, pass) {
-  return btoa(user + ":" + pass);
-}
-
-function loginSetToken(token) {
-  _authToken = token;
-  if (token) sessionStorage.setItem('bruce_auth', token);
-  else sessionStorage.removeItem('bruce_auth');
-}
-
-function loginRestoreToken() {
-  var t = sessionStorage.getItem('bruce_auth');
-  if (t) { _authToken = t; return true; }
-  return false;
-}
-
-/* Try a request, return the HTTP status (0 = network error) */
-function loginTestRequest(token) {
+/* Try a protected request, return status (0 = network error, 401 = need login) */
+function loginTest() {
   return new Promise(function (resolve) {
     var r = new XMLHttpRequest();
     var url = IS_DEV ? "/bruce/systeminfo" : "/systeminfo";
     r.open("GET", url, true);
     r.timeout = 4000;
-    if (token) r.setRequestHeader("Authorization", "Basic " + token);
     r.onload = function () { resolve(r.status); };
     r.onerror = r.ontimeout = function () { resolve(0); };
     r.send();
@@ -40,14 +22,12 @@ function loginShow() {
   document.getElementById("login-btn").disabled = false;
   document.getElementById("login-btn").textContent = "Log In";
   document.getElementById("login-error").classList.add("hidden");
-  var ov = document.getElementById("login-overlay");
-  if (ov) ov.classList.remove("hidden");
+  document.getElementById("login-overlay").classList.remove("hidden");
   setTimeout(function () { document.getElementById("login-username").focus(); }, 100);
 }
 
 function loginHide() {
-  var ov = document.getElementById("login-overlay");
-  if (ov) ov.classList.add("hidden");
+  document.getElementById("login-overlay").classList.add("hidden");
 }
 
 async function loginAuthenticate(user, pass) {
@@ -59,27 +39,40 @@ async function loginAuthenticate(user, pass) {
   btn.disabled = true;
   btn.textContent = "Logging in...";
 
-  var token = loginGetToken(user, pass);
-  var status = await loginTestRequest(token);
-  _loginTesting = false;
-
-  if (status === 0) {
-    err.textContent = "Cannot reach device. Check connection.";
-    err.classList.remove("hidden");
-    btn.disabled = false;
-    btn.textContent = "Log In";
-  } else if (status === 401 || status === 403) {
-    err.textContent = "Invalid username or password.";
-    err.classList.remove("hidden");
-    btn.disabled = false;
-    btn.textContent = "Log In";
-  } else if (status >= 200 && status < 400) {
-    loginSetToken(token);
-    loginHide();
-    startApp();
-  } else {
-    err.textContent = "Unexpected server response (" + status + ").";
-    err.classList.remove("hidden");
+  try {
+    var body = "usr=" + encodeURIComponent(user) + "&pwd=" + encodeURIComponent(pass);
+    var r = new XMLHttpRequest();
+    var url = IS_DEV ? "/bruce/login" : "/login";
+    r.open("POST", url, true);
+    r.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    r.timeout = 8000;
+    r.onload = function () {
+      _loginTesting = false;
+      if (r.status >= 200 && r.status < 400) {
+        /* Cookie set by server — reload so init picks up the session */
+        window.location.reload();
+      } else if (r.status === 401 || r.status === 403) {
+        err.textContent = "Invalid username or password.";
+        err.classList.remove("hidden");
+        btn.disabled = false;
+        btn.textContent = "Log In";
+      } else {
+        err.textContent = "Unexpected server response (" + r.status + ").";
+        err.classList.remove("hidden");
+        btn.disabled = false;
+        btn.textContent = "Log In";
+      }
+    };
+    r.onerror = r.ontimeout = function () {
+      _loginTesting = false;
+      err.textContent = "Cannot reach device. Check connection.";
+      err.classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Log In";
+    };
+    r.send(body);
+  } catch (e) {
+    _loginTesting = false;
     btn.disabled = false;
     btn.textContent = "Log In";
   }
@@ -194,6 +187,7 @@ const Dialog = {
   hide: function () {
     this._bg(false);
     this.loading.hide();
+    LogViewer._stop();
   },
   loading: {
     show: function (message) {
@@ -244,6 +238,7 @@ const Dialog = {
       document.getElementById("confirm-message").innerHTML = message;
       var okBtn = modal.querySelector(".confirm-ok");
       okBtn.textContent = confirmText;
+      modal.querySelector(".confirm-cancel").textContent = cancelText;
       if (danger) { okBtn.classList.add("btn-danger"); } else { okBtn.classList.remove("btn-danger"); }
 
       bg.classList.remove("hidden");
@@ -257,6 +252,63 @@ const Dialog = {
       okBtn.onclick = function () { cleanup(); resolve(true); };
       modal.querySelector(".confirm-cancel").onclick = function () { cleanup(); resolve(false); };
     });
+  }
+};
+
+/* ---- Log Viewer ---- */
+const LogViewer = {
+  _timer: null,
+  _paused: false,
+  _output: null,
+
+  open: function () {
+    Dialog.hide();
+    this._output = document.getElementById("log-output");
+    this._paused = false;
+    document.getElementById("log-toggle").textContent = "Pause";
+    this._output.textContent = "Connecting...";
+    Dialog.show("logviewer");
+    this._poll();
+  },
+
+  close: function () {
+    this._stop();
+  },
+
+  _poll: async function () {
+    if (this._paused) return;
+    try {
+      var r = await requestPost("/cm", { cmnd: "log" });
+      if (r && r.trim()) {
+        if (this._output.textContent === "Connecting..." || this._output.textContent === "Waiting for logs...") {
+          this._output.textContent = "";
+        }
+        this._output.textContent += r;
+        this._output.scrollTop = this._output.scrollHeight;
+      } else if (this._output.textContent === "Connecting...") {
+        this._output.textContent = "Log command not available on this firmware version.";
+      }
+    } catch (_) {
+      if (this._output.textContent === "Connecting...") {
+        this._output.textContent = "Log command not available on this firmware version.";
+      }
+    }
+    if (!this._paused) this._timer = setTimeout(this._poll.bind(this), 3000);
+  },
+
+  _stop: function () {
+    this._paused = true;
+    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+  },
+
+  toggle: function () {
+    this._paused = !this._paused;
+    document.getElementById("log-toggle").textContent = this._paused ? "Resume" : "Pause";
+    if (!this._paused) this._poll();
+  },
+
+  clear: function () {
+    this._output.textContent = "";
   }
 };
 
@@ -282,7 +334,6 @@ function _requestWithRetry(method, url, params, body, attempt) {
     }
     req.open(method, realUrl, true);
     req.timeout = REQ_TIMEOUT;
-    if (_authToken) req.setRequestHeader("Authorization", "Basic " + _authToken);
     req.onload = () => {
       if (req.status >= 200 && req.status < 300) {
         resolve(req.responseText);
@@ -428,15 +479,33 @@ async function fetchSystemInfo() {
   try {
     let req = await requestGet("/systeminfo");
     let info = JSON.parse(req);
-    $(".bruce-version").textContent = info.BRUCE_VERSION;
+    var ver = info.BRUCE_VERSION || "?";
+    $(".bruce-version").textContent = ver;
+    document.getElementById("sys-version").textContent = ver;
+    var sd = info.SD, lfs = info.LittleFS;
     var sdEl = $(".free-space .free-sd span");
     var fsEl = $(".free-space .free-fs span");
-    if (sdEl) sdEl.innerHTML = (info.SD ? info.SD.used + " / " + info.SD.total : "0 MB");
-    if (fsEl) fsEl.innerHTML = (info.LittleFS ? info.LittleFS.used + " / " + info.LittleFS.total : "0 MB");
+    if (sdEl) sdEl.innerHTML = (sd ? sd.used + " / " + sd.total : "0 MB");
+    if (fsEl) fsEl.innerHTML = (lfs ? lfs.used + " / " + lfs.total : "0 MB");
+    document.getElementById("sys-sd").textContent = sd ? sd.used + " / " + sd.total : "N/A";
+    document.getElementById("sys-lfs").textContent = lfs ? lfs.used + " / " + lfs.total : "N/A";
+
+    /* Try optional info via /cm */
+    fetchOptionalInfo("uptime", "sys-uptime");
+    fetchOptionalInfo("battery", "sys-battery");
+    fetchOptionalInfo("heap", "sys-heap");
   } catch (e) {
     Toast.error("Could not retrieve device info. The device may be disconnected.");
   }
   Dialog.loading.hide();
+}
+
+async function fetchOptionalInfo(cmd, elId) {
+  try {
+    var r = await requestPost("/cm", { cmnd: cmd });
+    var val = (r || "").trim();
+    if (val) document.getElementById(elId).textContent = val;
+  } catch (_) { /* command not supported */ }
 }
 
 async function saveEditorFile(runFile = false) {
@@ -1028,6 +1097,14 @@ $(".act-save-credential").addEventListener("click", async (e) => {
   Dialog.loading.hide();
 });
 
+document.getElementById("log-clear").addEventListener("click", function () {
+  LogViewer.clear();
+});
+
+document.getElementById("log-toggle").addEventListener("click", function () {
+  LogViewer.toggle();
+});
+
 $(".act-save-edit-file").addEventListener("click", async (e) => {
   await saveEditorFile();
 });
@@ -1563,23 +1640,13 @@ ThemeCache.init();
     await startApp();
     return;
   }
-  /* 1) Try no auth — ESP32 might have auth disabled */
-  var s = await loginTestRequest(null);
+  /* Check if already authenticated (cookie present and valid) */
+  var s = await loginTest();
   if (s >= 200 && s < 400) {
     loginHide();
     await startApp();
     return;
   }
-  /* 2) Try stored session token */
-  if (loginRestoreToken()) {
-    s = await loginTestRequest(_authToken);
-    if (s >= 200 && s < 400) {
-      loginHide();
-      await startApp();
-      return;
-    }
-    loginSetToken(null);
-  }
-  /* 3) Show login form */
+  /* Show login form */
   loginShow();
 })();

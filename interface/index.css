@@ -1244,6 +1244,65 @@ select option {
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
+/* ---- Info dialog: justify + system info ---- */
+.dialog.info .dialog-body p {
+  text-align: justify;
+}
+
+.sys-info {
+  font-size: 0.78rem;
+  margin-top: 6px;
+}
+
+.sys-info hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 10px 0;
+}
+
+.sys-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+}
+
+.sys-row:last-child {
+  border-bottom: none;
+}
+
+.sys-label {
+  opacity: 0.6;
+}
+
+.sys-value {
+  text-align: right;
+}
+
+/* ---- Log Viewer ---- */
+.dialog.logviewer {
+  max-width: 600px;
+}
+
+.dialog.logviewer .dialog-body {
+  padding: 0;
+}
+
+.log-output {
+  margin: 0;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color);
+  background: var(--background);
+  max-height: 300px;
+  min-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* ---- Login Overlay ---- */
 .login-overlay {
   position: fixed;

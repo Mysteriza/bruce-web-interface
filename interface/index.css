@@ -182,6 +182,7 @@ svg > line, svg > polyline, svg > polygon {
 .container .header .right-part {
   display: flex;
   align-items: center;
+  gap: 4px;
 }
 
 .container .header .title {
@@ -918,18 +919,65 @@ svg > line, svg > polyline, svg > polygon {
   }
 
   .container .header {
-    padding: 4px 6px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr;
+    gap: 4px;
+    padding: 6px;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .container .header .left-part,
+  .container .header .right-part {
+    display: contents;
   }
 
   .container .header .title {
-    font-size: 12px;
-    padding: 6px 10px;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: center;
+    font-size: 11px;
+    padding: 4px 8px;
+    margin: 0;
+    border-right: none;
+  }
+
+  .container .header .theme-dot {
+    display: none;
+  }
+
+  .container .header .left-part > .btn-action:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 10px 4px;
+    font-size: 11px;
+  }
+
+  .container .header .left-part > .btn-action:nth-child(3) {
+    grid-column: 1;
+    grid-row: 3;
+    padding: 10px 4px;
+    font-size: 11px;
+  }
+
+  .container .header .right-part > .btn-action:nth-child(2) {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 10px 4px;
+    font-size: 11px;
+  }
+
+  .container .header .right-part > .btn-action:nth-child(3) {
+    grid-column: 2;
+    grid-row: 3;
+    padding: 10px 4px;
+    font-size: 11px;
   }
 
   .btn-action {
-    font-size: 11px;
-    padding: 2px 7px;
+    font-size: 10px;
+    padding: 2px 6px;
   }
 
   .icon-action {
@@ -938,49 +986,84 @@ svg > line, svg > polyline, svg > polygon {
   }
 
   .container .free-space .block-space {
-    padding: 5px 8px;
+    padding: 8px 10px;
     font-size: 11px;
+    min-height: 40px;
   }
 
   .container .action-content {
-    padding: 4px 8px;
+    padding: 4px 6px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .container .action-content .breadcrumb {
+    width: 100%;
+  }
+
+  .container .body-actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
   }
 
   .container .content .table .col-check {
-    width: 34px;
+    width: 28px;
   }
 
   .container .content .table .col-action {
-    width: 136px;
+    width: 120px;
   }
 
   .container .content .table .col-size {
-    width: 65px;
+    width: 48px;
+    padding-right: 6px;
   }
 
   .container .content .table tbody tr td {
-    padding: 4px 3px;
-    height: 30px;
+    padding: 3px 3px;
+    height: 28px;
+    font-size: 11px;
   }
 
   .container .content .table tbody tr td:first-child {
-    padding-left: 6px;
+    padding-left: 5px;
   }
 
   .container .content .table tbody tr td:last-child {
-    padding-right: 6px;
+    padding-right: 5px;
   }
 
   .container .content .table thead tr th {
-    padding: 6px 3px;
+    padding: 5px 3px;
+    font-size: 10px;
   }
 
   .container .content .table thead tr th:first-child {
-    padding-left: 6px;
+    padding-left: 5px;
   }
 
   .container .content .table thead tr th:last-child {
-    padding-right: 6px;
+    padding-right: 5px;
+  }
+
+  .container .content .table .col-name {
+    font-size: 11px;
+  }
+
+  .container .content .table .col-action .icon-action {
+    width: 22px;
+    height: 22px;
+  }
+
+  .container .content .table .col-action .icon-action svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .batch-bar {
+    padding: 4px 5px 4px 6px;
+    font-size: 11px;
   }
 
   .dialog {
@@ -999,6 +1082,8 @@ svg > line, svg > polyline, svg > polygon {
   }
 
   #toast-container {
+    top: auto;
+    bottom: 12px;
     left: 8px;
     right: 8px;
     max-width: none;
@@ -1009,22 +1094,6 @@ svg > line, svg > polyline, svg > polygon {
     padding: 16px;
     width: 220px;
     height: 180px;
-  }
-}
-
-@media (max-width: 400px) {
-  .container .free-space {
-    flex-direction: column;
-  }
-
-  .container .free-space .block-space {
-    width: 100%;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .container .free-space .block-space:last-child {
-    border-bottom: 0;
   }
 }
 
@@ -1115,6 +1184,7 @@ svg > line, svg > polyline, svg > polygon {
 
 /* ---- NEW: Logout button (danger/destructive style) ---- */
 .btn-logout {
+  margin-left: 4px;
   border-color: #ff4444 !important;
   color: #ff4444 !important;
 }

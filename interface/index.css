@@ -233,6 +233,12 @@ svg > line, svg > polyline, svg > polygon {
 .container .free-space .block-space.active {
   background: color-mix(in srgb, var(--color) 8%, var(--surface));
   box-shadow: inset 0 -2px 0 var(--color);
+  color: var(--color);
+}
+
+.container .free-space .block-space.active > * {
+  color: var(--color);
+  background: transparent;
 }
 
 .container .free-space .block-space span {
@@ -1003,8 +1009,14 @@ svg > line, svg > polyline, svg > polygon {
 
   .container .body-actions {
     width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
+    display: flex;
+    gap: 2px;
+    flex-wrap: nowrap;
+  }
+
+  .container .body-actions .search-input {
+    flex: 1;
+    min-width: 60px;
   }
 
   .container .content .table .col-check {
@@ -1118,8 +1130,7 @@ svg > line, svg > polyline, svg > polygon {
   color: color-mix(in srgb, var(--color) 40%, transparent);
 }
 @media (max-width: 640px) {
-  .search-input { width: 80px; font-size: 0.75rem; }
-  .search-input:focus { width: 120px; }
+  .search-input { font-size: 0.75rem; }
 }
 
 /* ---- NEW: Checkbox input styling ---- */

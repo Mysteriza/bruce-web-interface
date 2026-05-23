@@ -29,6 +29,35 @@ const EXECUTABLE = {
   wav: "play"
 };
 
+/* ---- NEW: Toast notification system ---- */
+const Toast = {
+  show(message, type, duration) {
+    type = type || "info";
+    duration = duration || 3500;
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+    const el = document.createElement("div");
+    el.className = "toast toast-" + type;
+    el.innerHTML =
+      '<span class="toast-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>' +
+      '<span class="toast-msg">' + this._esc(message) + '</span>' +
+      '<button class="toast-close">&times;</button>';
+    el.querySelector(".toast-close").onclick = function () { el.remove(); };
+    container.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.remove(); }, duration);
+  },
+  success: function (m, d) { Toast.show(m, "success", d); },
+  error: function (m, d) { Toast.show(m, "error", d); },
+  warning: function (m, d) { Toast.show(m, "warning", d); },
+  info: function (m, d) { Toast.show(m, "info", d); },
+  _esc: function (s) {
+    var d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+};
+
+/* ---- ORIGINAL Dialog (kept intact, with .confirm() added) ---- */
 const Dialog = {
   _bg: function (show) {
     let bg = $(".dialog-background");
@@ -65,27 +94,27 @@ const Dialog = {
     const dbForm = {
       renameFolder: {
         title: "Rename Folder",
-        label: `New Name:`,
+        label: "New Name:",
         action: "Rename"
       },
       renameFile: {
         title: "Rename File",
-        label: `New Name:`,
+        label: "New Name:",
         action: "Rename"
       },
       createFolder: {
         title: "Create Folder",
-        label: `Folder Name:`,
+        label: "Folder Name:",
         action: "Create Folder"
       },
       createFile: {
         title: "Create File",
-        label: `File Name:`,
+        label: "File Name:",
         action: "Create File"
       },
       serial: {
         title: "Serial Command",
-        label: `Command:`,
+        label: "Command:",
         action: "Run"
       }
     };
@@ -106,6 +135,42 @@ const Dialog = {
     dialog.querySelector("#oinput-input").value = "";
     dialog.querySelector("#oinput-input").focus();
     return dialog;
+  },
+  /* ---- NEW: Custom confirmation dialog ---- */
+  confirm: function (opts) {
+    opts = opts || {};
+    var title = opts.title || "Confirm";
+    var message = opts.message || "Are you sure?";
+    var confirmText = opts.confirmText || "Confirm";
+    var cancelText = opts.cancelText || "Cancel";
+    var danger = opts.danger || false;
+
+    return new Promise(function (resolve) {
+      var bg = $(".dialog-background");
+      var modal = $(".dialog.custom-confirm");
+
+      // Hide other dialogs first
+      document.querySelectorAll(".dialog").forEach(function (d) {
+        if (!d.classList.contains("hidden")) d.classList.add("hidden");
+      });
+
+      document.getElementById("confirm-title").textContent = title;
+      document.getElementById("confirm-message").innerHTML = message;
+      var okBtn = modal.querySelector(".confirm-ok");
+      okBtn.textContent = confirmText;
+      if (danger) { okBtn.classList.add("btn-danger"); } else { okBtn.classList.remove("btn-danger"); }
+
+      bg.classList.remove("hidden");
+      modal.classList.remove("hidden");
+
+      function cleanup() {
+        bg.classList.add("hidden");
+        modal.classList.add("hidden");
+      }
+
+      okBtn.onclick = function () { cleanup(); resolve(true); };
+      modal.querySelector(".confirm-cancel").onclick = function () { cleanup(); resolve(false); };
+    });
   }
 };
 
@@ -123,7 +188,7 @@ async function requestGet (url, data) {
       if (req.status >= 200 && req.status < 300) {
         resolve(req.responseText);
       } else {
-        reject(new Error(`Request failed with status ${req.status}`));
+        reject(new Error("Request failed with status " + req.status));
       }
     };
     req.onerror = () => {
@@ -148,7 +213,7 @@ async function requestPost (url, data) {
       if (req.status >= 200 && req.status < 300) {
         resolve(req.responseText);
       } else {
-        reject(new Error(`Request failed with status ${req.status}`));
+        reject(new Error("Request failed with status " + req.status));
       }
     };
     req.onerror = () => reject(new Error("Network error"));
@@ -223,7 +288,7 @@ async function uploadFile () {
     fd.append("folder", currentPath);
     fd.append("fs", currentDrive);
 
-    let realUrl = `/upload`;
+    let realUrl = "/upload";
     if (IS_DEV) realUrl = "/bruce" + realUrl;
     let req = new XMLHttpRequest();
     req.upload.onprogress = (e) => {
@@ -251,8 +316,9 @@ async function runCommand (cmd) {
   Dialog.loading.show('Running command...');
   try {
     await requestPost("/cm", { cmnd: cmd });
+    Toast.success("Command executed");
   } catch (error) {
-    alert("Failed to run command: " + error.message);
+    Toast.error("Failed to run command: " + error.message);
   } finally {
     Dialog.loading.hide();
   }
@@ -314,7 +380,7 @@ function renderFileRow(fileList) {
       e.querySelector(".col-size").textContent = size;
       e.querySelector(".col-action").classList.add("type-file");
 
-      let downloadUrl = `/file?fs=${currentDrive}&name=${encodeURIComponent(dPath)}&action=download`;
+      let downloadUrl = "/file?fs=" + currentDrive + "&name=" + encodeURIComponent(dPath) + "&action=download";
       if (IS_DEV) downloadUrl = "/bruce" + downloadUrl;
       e.querySelector(".act-download").setAttribute("download", name);
       e.querySelector(".act-download").setAttribute("href", downloadUrl);
@@ -342,25 +408,36 @@ let currentPath;
 async function fetchFiles(drive, path) {
   currentDrive = drive;
   currentPath = path;
-  $(`.act-browse.active`)?.classList.remove("active");
-  $(`.act-browse[data-drive='${drive}']`).classList.add("active");
+  $(".block-space.active")?.classList.remove("active");
+  var driveBtn = document.querySelector(".block-space[data-drive='" + drive + "']");
+  if (driveBtn) driveBtn.classList.add("active");
   $(".current-path").textContent = drive + ":/" + path;
   Dialog.loading.show('Fetching files...');
-  let req = await requestGet("/listfiles", {
-    fs: drive,
-    folder: path
-  });
-  renderFileRow(req);
+  try {
+    let req = await requestGet("/listfiles", {
+      fs: drive,
+      folder: path
+    });
+    renderFileRow(req);
+  } catch (e) {
+    Toast.error("Failed to load files: " + e.message);
+  }
   Dialog.loading.hide();
 }
 
 async function fetchSystemInfo() {
   Dialog.loading.show('Fetching system info...');
-  let req = await requestGet("/systeminfo");
-  let info = JSON.parse(req);
-  $(".bruce-version").textContent = info.BRUCE_VERSION;
-  $(".free-space .free-sd span").innerHTML = `${info.SD.used} / ${info.SD.total}`;
-  $(".free-space .free-fs span").innerHTML = `${info.LittleFS.used} / ${info.LittleFS.total}`;
+  try {
+    let req = await requestGet("/systeminfo");
+    let info = JSON.parse(req);
+    $(".bruce-version").textContent = info.BRUCE_VERSION;
+    var sdEl = $(".free-space .free-sd span");
+    var fsEl = $(".free-space .free-fs span");
+    if (sdEl) sdEl.innerHTML = (info.SD ? info.SD.used + " / " + info.SD.total : "0 MB");
+    if (fsEl) fsEl.innerHTML = (info.LittleFS ? info.LittleFS.used + " / " + info.LittleFS.total : "0 MB");
+  } catch (e) {
+    Toast.error("Failed to get system info: " + e.message);
+  }
   Dialog.loading.hide();
 }
 
@@ -371,11 +448,16 @@ async function saveEditorFile(runFile = false) {
   if (isModified(editor)) {
     $(".act-save-edit-file").disabled = true;
     editor.setAttribute("data-hash", calcHash(editor.value));
-    await requestPost("/edit", {
-      fs: currentDrive,
-      name: filename,
-      content: editor.value
-    });
+    try {
+      await requestPost("/edit", {
+        fs: currentDrive,
+        name: filename,
+        content: editor.value
+      });
+      Toast.success("File saved");
+    } catch (e) {
+      Toast.error("Save failed: " + e.message);
+    }
   }
 
   if (runFile) {
@@ -405,11 +487,10 @@ async function runNavigation(direction) {
   SCREEN_NAVIGATING = true;
   try {
     drawCanvasLoading();
-    await requestPost("/cm", { cmnd: `nav ${direction.toLowerCase()}` });
+    await requestPost("/cm", { cmnd: "nav " + direction.toLowerCase() });
     await reloadScreen();
   } catch (error) {
-    alert("Failed to run command: " + error.message);
-    console.error(error)
+    Toast.error("Navigation failed: " + error.message);
   } finally {
     SCREEN_NAVIGATING = false;
   }
@@ -427,7 +508,6 @@ async function reloadScreen() {
     await renderTFT(screenData);
   } catch (error) {
     console.error("Failed to reload screen:", error);
-    alert("Failed to reload screen: " + error.message);
   } finally {
     btnForceReload.classList.remove("reloading");
     SCREEN_RELOAD = false;
@@ -636,14 +716,14 @@ async function renderTFT(data) {
         ctx.fillRect(input.x-o, input.y, input.txt.length * fw, input.size * 8);
 
         ctx.fillStyle = color565toCSS(input.fg);
-        ctx.font = `${input.size * 8}px monospace`;
+        ctx.font = input.size * 8 + "px monospace";
         ctx.textBaseline = "top";
         ctx.textAlign = fn === 14 ? "center" : fn === 15 ? "right" : "left";
         ctx.fillText(input.txt, input.x, input.y);
       break;
 
       case 18: // DRAWIMAGE
-        let url = `/file?fs=${input.fs}&name=${encodeURIComponent(input.file)}&action=image`;
+        let url = "/file?fs=" + input.fs + "&name=" + encodeURIComponent(input.file) + "&action=image";
         if (IS_DEV) url = "/bruce" + url;
         await drawImageCached(url, input);
       break;
@@ -689,7 +769,8 @@ function drawCanvasLoading() {
 }
 
 let oldTimerSession = sessionStorage.getItem("autoReload") || "0";
-eConfigAutoReload.querySelector(`option[value="${oldTimerSession}"]`).selected = true;
+var autoOpt = eConfigAutoReload.querySelector('option[value="' + oldTimerSession + '"]');
+if (autoOpt) autoOpt.selected = true;
 eConfigAutoReload.addEventListener("change", async (e) => {
   e.preventDefault();
   autoReloadScreen();
@@ -702,10 +783,10 @@ btnForceReload.addEventListener("click", async (e) => {
   await reloadScreen();
 });
 
-window.ondragenter = () => $(".upload-area").classList.remove("hidden");
-$(".upload-area").ondragleave = () => $(".upload-area").classList.add("hidden");
-$(".upload-area").ondragover = (e) => e.preventDefault();
-$(".upload-area").ondrop = async (e) => {
+window.ondragenter = function () { $(".upload-area").classList.remove("hidden"); };
+$(".upload-area").ondragleave = function () { $(".upload-area").classList.add("hidden"); };
+$(".upload-area").ondragover = function (e) { e.preventDefault(); };
+$(".upload-area").ondrop = async function (e) {
   e.preventDefault();
   $(".upload-area").classList.add("hidden")
   const items = e.dataTransfer.items;
@@ -763,17 +844,21 @@ $(".container").addEventListener("click", async (e) => {
 
     // Load file content
     Dialog.loading.show('Fetching content...');
-    let r = await requestGet(`/file?fs=${currentDrive}&name=${encodeURIComponent(file)}&action=edit`);
-    editor.value = r;
-    editor.setAttribute("data-hash", calcHash(r));
+    try {
+      let r = await requestGet("/file?fs=" + currentDrive + "&name=" + encodeURIComponent(file) + "&action=edit");
+      editor.value = r;
+      editor.setAttribute("data-hash", calcHash(r));
 
-    $(".act-save-edit-file").disabled = true;
+      $(".act-save-edit-file").disabled = true;
 
-    let serial = getSerialCommand(file);
-    if (serial === undefined) {
-      $(".act-run-edit-file").classList.add("hidden");
-    } else {
-      $(".act-run-edit-file").classList.remove("hidden");
+      let serial = getSerialCommand(file);
+      if (serial === undefined) {
+        $(".act-run-edit-file").classList.add("hidden");
+      } else {
+        $(".act-run-edit-file").classList.remove("hidden");
+      }
+    } catch (err) {
+      Toast.error("Failed to load file: " + err.message);
     }
 
     Dialog.loading.hide();
@@ -796,7 +881,7 @@ $(".container").addEventListener("click", async (e) => {
       filePath = "";
     }
 
-    d.setAttribute("data-cache", `${action}|${filePath}`);
+    d.setAttribute("data-cache", action + "|" + filePath);
     if (filePath != "") {
       let fName = filePath.substring(filePath.lastIndexOf("/") + 1);
       let fNameSpan = d.querySelector(".oinput-file-name");
@@ -810,18 +895,29 @@ $(".container").addEventListener("click", async (e) => {
   let actDeleteFile = e.target.closest(".act-delete");
   if (actDeleteFile) {
     e.preventDefault();
-    let file = actDeleteFile.closest(".file-row").getAttribute("data-file")
+    var file = actDeleteFile.closest(".file-row").getAttribute("data-file")
       || actDeleteFile.closest(".file-row").getAttribute("data-path");
     if (!file) return;
 
-    if (!confirm(`Are you sure you want to DELETE ${file}?\n\nTHIS ACTION CANNOT BE UNDONE!`)) return;
+    var confirmed = await Dialog.confirm({
+      title: "Delete",
+      message: "Are you sure you want to DELETE <strong>" + file + "</strong>?<br><br>This action <strong>cannot be undone</strong>!",
+      confirmText: "Delete",
+      danger: true
+    });
+    if (!confirmed) return;
 
     Dialog.loading.show('Deleting...');
-    await requestGet("/file", {
-      fs: currentDrive,
-      action: 'delete',
-      name: file
-    });
+    try {
+      await requestGet("/file", {
+        fs: currentDrive,
+        action: 'delete',
+        name: file
+      });
+      Toast.success("Deleted: " + file);
+    } catch (err) {
+      Toast.error("Delete failed: " + err.message);
+    }
     Dialog.loading.hide();
     fetchSystemInfo();
     fetchFiles(currentDrive, currentPath);
@@ -854,44 +950,48 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
   let fileInput = $("#oinput-input");
   let fileName = fileInput.value.trim();
   if (!fileName) {
-    alert("Filename cannot be empty.");
+    Toast.error("Filename cannot be empty.");
     return;
   }
   let action = dialog.getAttribute("data-cache");
   if (!action) {
-    alert("No action specified.");
+    Toast.error("No action specified.");
     return;
   }
 
   let refreshList = true;
   let [actionType, path] = action.split("|");
-  if (actionType.startsWith("rename")) {
-    Dialog.loading.show('Renaming...');
-    await requestPost("/rename", {
-      fs: currentDrive,
-      filePath: path,
-      fileName: fileName
-    });
-  } else if (actionType === "createFolder") {
-    Dialog.loading.show('Creating Folder...');
-    let urlQuery = new URLSearchParams({
-      fs: currentDrive,
-      action: "create",
-      name: path.trimEnd("/") + "/" + fileName,
-    });
-    await requestGet("/file?" + urlQuery.toString());
-  } else if (actionType === "createFile") {
-    Dialog.loading.show('Creating File...');
-    let urlQuery = new URLSearchParams({
-      fs: currentDrive,
-      action: "createfile",
-      name: path.trimEnd("/") + "/" + fileName,
-    });
-    await requestGet("/file?" + urlQuery.toString());
-  } else if (actionType === "serial") {
-    Dialog.loading.show('Running Serial Command...');
-    await runCommand(fileName);
-    refreshList = false; // No need to refresh file list for serial commands
+  try {
+    if (actionType.startsWith("rename")) {
+      Dialog.loading.show('Renaming...');
+      await requestPost("/rename", {
+        fs: currentDrive,
+        filePath: path,
+        fileName: fileName
+      });
+    } else if (actionType === "createFolder") {
+      Dialog.loading.show('Creating Folder...');
+      let urlQuery = new URLSearchParams({
+        fs: currentDrive,
+        action: "create",
+        name: path.trimEnd("/") + "/" + fileName,
+      });
+      await requestGet("/file?" + urlQuery.toString());
+    } else if (actionType === "createFile") {
+      Dialog.loading.show('Creating File...');
+      let urlQuery = new URLSearchParams({
+        fs: currentDrive,
+        action: "createfile",
+        name: path.trimEnd("/") + "/" + fileName,
+      });
+      await requestGet("/file?" + urlQuery.toString());
+    } else if (actionType === "serial") {
+      Dialog.loading.show('Running Serial Command...');
+      await runCommand(fileName);
+      refreshList = false;
+    }
+  } catch (err) {
+    Toast.error("Operation failed: " + err.message);
   }
 
   if (refreshList) fetchFiles(currentDrive, currentPath);
@@ -902,17 +1002,22 @@ $(".act-save-credential").addEventListener("click", async (e) => {
   let username = $("#cred-username").value.trim();
   let password = $("#cred-password").value.trim();
   if (!username || !password) {
-    alert("Username and password cannot be empty.");
+    Toast.error("Username and password cannot be empty.");
     return;
   }
 
   Dialog.loading.show('Saving WiFi Credentials...');
-  await requestGet("/wifi", {
-    usr: username,
-    pwd: password
-  });
+  try {
+    await requestGet("/wifi", {
+      usr: username,
+      pwd: password
+    });
+    Toast.success("Credentials saved!");
+    Dialog.hide();
+  } catch (err) {
+    Toast.error("Failed to save: " + err.message);
+  }
   Dialog.loading.hide();
-  alert("Credentials saved successfully!");
 });
 
 $(".act-save-edit-file").addEventListener("click", async (e) => {
@@ -927,13 +1032,43 @@ runEditorBtn.addEventListener("click", async (e) => {
 
 $(".act-reboot").addEventListener("click", async (e) => {
   e.preventDefault();
-  if (!confirm("Are you sure you want to REBOOT the device?")) return;
+  var confirmed = await Dialog.confirm({
+    title: "Reboot Device",
+    message: "Are you sure you want to <strong>reboot</strong> the device?",
+    confirmText: "Reboot",
+    danger: true
+  });
+  if (!confirmed) return;
   Dialog.loading.show('Rebooting...');
-  await requestGet("/reboot");
-  setTimeout(() => {
-    location.reload();
-  }, 1000);
+  try {
+    await requestGet("/reboot");
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  } catch (err) {
+    Toast.error("Reboot failed: " + err.message);
+    Dialog.loading.hide();
+  }
 });
+
+/* ---- OVERRIDE: Logout with confirmation ---- */
+var logoutBtn = document.querySelector('.dialog.setting .btn-action:last-child');
+if (logoutBtn && logoutBtn.textContent.trim() === "Log Out") {
+  logoutBtn.onclick = null;
+  logoutBtn.addEventListener("click", async function (e) {
+    e.preventDefault();
+    var confirmed = await Dialog.confirm({
+      title: "Log Out",
+      message: "Are you sure you want to <strong>log out</strong> of the WebUI?",
+      confirmText: "Log Out",
+      danger: false
+    });
+    if (!confirmed) return;
+    Dialog.loading.show('Logging out...');
+    try { await requestGet("/logout"); } catch (x) { /* ignore */ }
+    window.location.href = '/logout';
+  });
+}
 
 $(".navigator-canvas").addEventListener("click", async (e) => {
   let nav = e.target.matches(".nav") ? e.target : e.target.closest(".nav");
@@ -995,9 +1130,13 @@ window.addEventListener("keydown", async (e) => {
     if ($(".dialog.editor:not(.hidden)")) {
       let editor = $(".dialog.editor .file-content");
       if (isModified(editor)) {
-        if (!confirm("You have unsaved changes. Do you want to discard them?")) {
-          return;
-        }
+        var ok = await Dialog.confirm({
+          title: "Unsaved Changes",
+          message: "You have unsaved changes. Discard them?",
+          confirmText: "Discard",
+          danger: false
+        });
+        if (!ok) return;
       }
     }
 
@@ -1032,6 +1171,49 @@ $(".file-content").addEventListener("keyup", function (e) {
     }
 
     $(".act-save-edit-file").disabled = !isModified(e.target);
+  }
+});
+
+/* ---- NEW: Dropzone overlay ---- */
+var dropzone = document.getElementById("dropzone");
+if (dropzone) {
+  window.addEventListener("dragenter", function () { dropzone.classList.remove("hidden"); });
+  dropzone.addEventListener("dragleave", function () { dropzone.classList.add("hidden"); });
+  dropzone.addEventListener("dragover", function (e) { e.preventDefault(); });
+  dropzone.addEventListener("drop", async function (e) {
+    e.preventDefault();
+    dropzone.classList.add("hidden");
+    var items = e.dataTransfer.items;
+    if (!items || items.length === 0) return;
+    for (var i = 0; i < items.length; i++) {
+      var entry = items[i].webkitGetAsEntry();
+      if (entry) await appendDroppedFiles(entry);
+    }
+    if (!_runningUpload) setTimeout(function () { if (_queueUpload.length > 0) uploadFile(); }, 100);
+  });
+}
+
+/* ---- NEW: Click on dialog overlay closes it (if not custom confirm) ---- */
+$(".dialog-background").addEventListener("click", function (e) {
+  if (e.target === $(".dialog-background")) {
+    var customConfirm = $(".dialog.custom-confirm:not(.hidden)");
+    if (customConfirm) return;
+    if ($(".dialog.editor:not(.hidden)")) {
+      var editor = $(".dialog.editor .file-content");
+      if (isModified(editor)) {
+        Dialog.confirm({
+          title: "Unsaved Changes",
+          message: "You have unsaved changes. Discard them?",
+          confirmText: "Discard",
+          danger: false
+        }).then(function (ok) {
+          if (ok) Dialog.hide();
+        });
+        return;
+      }
+    }
+    var anyEscape = $(".dialog:not(.hidden) .act-escape");
+    if (anyEscape) anyEscape.click();
   }
 });
 

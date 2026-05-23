@@ -1,6 +1,8 @@
-function $(s) { return document.querySelector(s) }
-const _TMPL = $('#t');
-const IS_DEV = (window.location.host === "127.0.0.1:8080");
+function $(s) {
+  return document.querySelector(s);
+}
+const _TMPL = $("#t");
+const IS_DEV = window.location.host === "127.0.0.1:8080";
 
 /* ---- Login Auth ---- */
 let _loginTesting = false;
@@ -12,8 +14,12 @@ function loginTest() {
     var url = IS_DEV ? "/bruce/systeminfo" : "/systeminfo";
     r.open("GET", url, true);
     r.timeout = 4000;
-    r.onload = function () { resolve(r.status); };
-    r.onerror = r.ontimeout = function () { resolve(0); };
+    r.onload = function () {
+      resolve(r.status);
+    };
+    r.onerror = r.ontimeout = function () {
+      resolve(0);
+    };
     r.send();
   });
 }
@@ -23,7 +29,9 @@ function loginShow() {
   document.getElementById("login-btn").textContent = "Log In";
   document.getElementById("login-error").classList.add("hidden");
   document.getElementById("login-overlay").classList.remove("hidden");
-  setTimeout(function () { document.getElementById("login-username").focus(); }, 100);
+  setTimeout(function () {
+    document.getElementById("login-username").focus();
+  }, 100);
 }
 
 function loginHide() {
@@ -40,7 +48,8 @@ async function loginAuthenticate(user, pass) {
   btn.textContent = "Logging in...";
 
   try {
-    var body = "usr=" + encodeURIComponent(user) + "&pwd=" + encodeURIComponent(pass);
+    var body =
+      "usr=" + encodeURIComponent(user) + "&pwd=" + encodeURIComponent(pass);
     var r = new XMLHttpRequest();
     var url = IS_DEV ? "/bruce/login" : "/login";
     r.open("POST", url, true);
@@ -82,20 +91,23 @@ async function loginAuthenticate(user, pass) {
 const T = {
   master: _TMPL,
   fileRow: function () {
-    const tmp = document.createElement('template');
-    tmp.innerHTML = this.master.content.querySelector('table tr.file-row').outerHTML;
+    const tmp = document.createElement("template");
+    tmp.innerHTML =
+      this.master.content.querySelector("table tr.file-row").outerHTML;
     return tmp.content;
   },
   pathRow: function () {
-    const tmp = document.createElement('template');
-    tmp.innerHTML = this.master.content.querySelector('table tr.path-row').outerHTML;
+    const tmp = document.createElement("template");
+    tmp.innerHTML =
+      this.master.content.querySelector("table tr.path-row").outerHTML;
     return tmp.content;
   },
   uploadLoading: function () {
-    const tmp = document.createElement('template');
-    tmp.innerHTML = this.master.content.querySelector('.upload-loading').outerHTML;
+    const tmp = document.createElement("template");
+    tmp.innerHTML =
+      this.master.content.querySelector(".upload-loading").outerHTML;
     return tmp.content;
-  }
+  },
 };
 
 const EXECUTABLE = {
@@ -105,63 +117,91 @@ const EXECUTABLE = {
   bjs: "js run_from_file",
   txt: "badusb run_from_file",
   mp3: "play",
-  wav: "play"
+  wav: "play",
 };
 
 /* ---- NEW: Theme CSS Cache ---- */
 const ThemeCache = {
-  key: 'bruce_theme',
+  key: "bruce_theme",
   async init() {
     try {
-      var r = await fetch('/theme.css');
+      var r = await fetch("/theme.css");
       var css = await r.text();
       localStorage.setItem(this.key, css);
-    } catch(e) {
+    } catch (e) {
       // offline / dev mode — cached version used if available
     }
   },
   updateDot() {
-    var dot = document.getElementById('theme-dot');
+    var dot = document.getElementById("theme-dot");
     if (!dot) return;
-    var color = getComputedStyle(document.documentElement).getPropertyValue('--color').trim();
+    var color = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color")
+      .trim();
     if (color) dot.style.background = color;
-  }
+  },
 };
 
 /* ---- NEW: Toast notification system ---- */
 const Toast = {
   show(message, type, duration) {
     type = type || "info";
-    duration = duration || 3500;
+    duration = duration || 2500;
     const container = document.getElementById("toast-container");
     if (!container) return;
     const el = document.createElement("div");
     el.className = "toast toast-" + type;
     el.innerHTML =
       '<span class="toast-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>' +
-      '<span class="toast-msg">' + this._esc(message) + '</span>' +
+      '<span class="toast-msg">' +
+      this._esc(message) +
+      "</span>" +
       '<button class="toast-close">&times;</button>';
-    el.querySelector(".toast-close").onclick = function () { el.remove(); };
+    el.querySelector(".toast-close").onclick = function () {
+      el.remove();
+    };
     container.appendChild(el);
-    setTimeout(function () { if (el.parentNode) el.remove(); }, duration);
+    setTimeout(function () {
+      if (el.parentNode) el.remove();
+    }, duration);
   },
-  success: function (m, d) { Toast.show(m, "success", d); },
-  error: function (m, d) { Toast.show(m, "error", d); },
-  warning: function (m, d) { Toast.show(m, "warning", d); },
-  info: function (m, d) { Toast.show(m, "info", d); },
+  success: function (m, d) {
+    Toast.show(m, "success", d);
+  },
+  error: function (m, d) {
+    Toast.show(m, "error", d);
+  },
+  warning: function (m, d) {
+    Toast.show(m, "warning", d);
+  },
+  info: function (m, d) {
+    Toast.show(m, "info", d);
+  },
   _esc: function (s) {
     var d = document.createElement("div");
     d.textContent = s;
     return d.innerHTML;
-  }
+  },
 };
 
 const DIALOG_FORM = {
-  renameFolder: { title: "Rename Folder", label: "New Name:", action: "Rename" },
-  renameFile:   { title: "Rename File",   label: "New Name:", action: "Rename" },
-  createFolder: { title: "Create Folder", label: "Folder Name:", action: "Create Folder" },
-  createFile:   { title: "Create File",   label: "File Name:", action: "Create File" },
-  serial:       { title: "Serial Command", label: "Command:",  action: "Run" }
+  renameFolder: {
+    title: "Rename Folder",
+    label: "New Name:",
+    action: "Rename",
+  },
+  renameFile: { title: "Rename File", label: "New Name:", action: "Rename" },
+  createFolder: {
+    title: "Create Folder",
+    label: "Folder Name:",
+    action: "Create Folder",
+  },
+  createFile: {
+    title: "Create File",
+    label: "File Name:",
+    action: "Create File",
+  },
+  serial: { title: "Serial Command", label: "Command:", action: "Run" },
 };
 
 /* ---- ORIGINAL Dialog (kept intact, with .confirm() added) ---- */
@@ -170,8 +210,7 @@ const Dialog = {
     let bg = $(".dialog-background");
     let dialogs = document.querySelectorAll(".dialog");
     dialogs.forEach((dialog) => {
-      if (!dialog.classList.contains("hidden"))
-        dialog.classList.add("hidden");
+      if (!dialog.classList.contains("hidden")) dialog.classList.add("hidden");
     });
     if (show) {
       bg.classList.remove("hidden");
@@ -196,7 +235,7 @@ const Dialog = {
     },
     hide: function () {
       $(".loading-area").classList.add("hidden");
-    }
+    },
   },
   showOneInput: function (name) {
     let config = DIALOG_FORM[name];
@@ -211,7 +250,7 @@ const Dialog = {
     dialog.querySelector(".oinput-label").textContent = config.label;
     dialog.querySelector(".oinput-file-name").textContent = "";
     dialog.querySelector(".act-save-oinput-file").textContent = config.action;
-    this.show('oinput');
+    this.show("oinput");
     dialog.querySelector("#oinput-input").value = "";
     dialog.querySelector("#oinput-input").focus();
     return dialog;
@@ -239,7 +278,11 @@ const Dialog = {
       var okBtn = modal.querySelector(".confirm-ok");
       okBtn.textContent = confirmText;
       modal.querySelector(".confirm-cancel").textContent = cancelText;
-      if (danger) { okBtn.classList.add("btn-danger"); } else { okBtn.classList.remove("btn-danger"); }
+      if (danger) {
+        okBtn.classList.add("btn-danger");
+      } else {
+        okBtn.classList.remove("btn-danger");
+      }
 
       bg.classList.remove("hidden");
       modal.classList.remove("hidden");
@@ -249,10 +292,16 @@ const Dialog = {
         modal.classList.add("hidden");
       }
 
-      okBtn.onclick = function () { cleanup(); resolve(true); };
-      modal.querySelector(".confirm-cancel").onclick = function () { cleanup(); resolve(false); };
+      okBtn.onclick = function () {
+        cleanup();
+        resolve(true);
+      };
+      modal.querySelector(".confirm-cancel").onclick = function () {
+        cleanup();
+        resolve(false);
+      };
     });
-  }
+  },
 };
 
 /* ---- Log Viewer ---- */
@@ -280,17 +329,22 @@ const LogViewer = {
     try {
       var r = await requestPost("/cm", { cmnd: "log" });
       if (r && r.trim()) {
-        if (this._output.textContent === "Connecting..." || this._output.textContent === "Waiting for logs...") {
+        if (
+          this._output.textContent === "Connecting..." ||
+          this._output.textContent === "Waiting for logs..."
+        ) {
           this._output.textContent = "";
         }
         this._output.textContent += r;
         this._output.scrollTop = this._output.scrollHeight;
       } else if (this._output.textContent === "Connecting...") {
-        this._output.textContent = "Log command not available on this firmware version.";
+        this._output.textContent =
+          "Log command not available on this firmware version.";
       }
     } catch (_) {
       if (this._output.textContent === "Connecting...") {
-        this._output.textContent = "Log command not available on this firmware version.";
+        this._output.textContent =
+          "Log command not available on this firmware version.";
       }
     }
     if (!this._paused) this._timer = setTimeout(this._poll.bind(this), 3000);
@@ -298,28 +352,33 @@ const LogViewer = {
 
   _stop: function () {
     this._paused = true;
-    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
+    if (this._timer) {
+      clearTimeout(this._timer);
+      this._timer = null;
+    }
   },
 
   toggle: function () {
     this._paused = !this._paused;
-    document.getElementById("log-toggle").textContent = this._paused ? "Resume" : "Pause";
+    document.getElementById("log-toggle").textContent = this._paused
+      ? "Resume"
+      : "Pause";
     if (!this._paused) this._poll();
   },
 
   clear: function () {
     this._output.textContent = "";
-  }
+  },
 };
 
 const REQ_TIMEOUT = 10000;
 const REQ_RETRIES = 2;
 
-async function requestGet (url, data) {
+async function requestGet(url, data) {
   return _requestWithRetry("GET", url, data, null);
 }
 
-async function requestPost (url, data) {
+async function requestPost(url, data) {
   return _requestWithRetry("POST", url, data, data);
 }
 
@@ -339,7 +398,13 @@ function _requestWithRetry(method, url, params, body, attempt) {
         resolve(req.responseText);
       } else {
         if (attempt < REQ_RETRIES && req.status >= 500) {
-          setTimeout(() => resolve(_requestWithRetry(method, url, params, body, attempt + 1)), 1000 * (attempt + 1));
+          setTimeout(
+            () =>
+              resolve(
+                _requestWithRetry(method, url, params, body, attempt + 1),
+              ),
+            1000 * (attempt + 1),
+          );
         } else {
           reject(new Error("Request failed with status " + req.status));
         }
@@ -347,14 +412,22 @@ function _requestWithRetry(method, url, params, body, attempt) {
     };
     req.ontimeout = () => {
       if (attempt < REQ_RETRIES) {
-        setTimeout(() => resolve(_requestWithRetry(method, url, params, body, attempt + 1)), 1000 * (attempt + 1));
+        setTimeout(
+          () =>
+            resolve(_requestWithRetry(method, url, params, body, attempt + 1)),
+          1000 * (attempt + 1),
+        );
       } else {
         reject(new Error("Request timed out"));
       }
     };
     req.onerror = () => {
       if (attempt < REQ_RETRIES) {
-        setTimeout(() => resolve(_requestWithRetry(method, url, params, body, attempt + 1)), 1000 * (attempt + 1));
+        setTimeout(
+          () =>
+            resolve(_requestWithRetry(method, url, params, body, attempt + 1)),
+          1000 * (attempt + 1),
+        );
       } else {
         reject(new Error("Network error"));
       }
@@ -372,20 +445,22 @@ function _requestWithRetry(method, url, params, body, attempt) {
 }
 
 function stringToId(str) {
-  let hash = 0, i, chr;
+  let hash = 0,
+    i,
+    chr;
   if (str.length === 0) return hash.toString();
   for (i = 0; i < str.length; i++) {
-    chr   = str.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
+    chr = str.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
     hash |= 0; // Convert to 32bit integer
   }
-  return 'id_' + Math.abs(hash);
+  return "id_" + Math.abs(hash);
 }
 
 const _queueUpload = [];
 let _runningUpload = false;
 function appendFileToQueue(files) {
-  Dialog.show('upload');
+  Dialog.show("upload");
   let d = $(".dialog.upload");
   for (let i = 0; i < files.length; i++) {
     let file = files[i];
@@ -393,7 +468,9 @@ function appendFileToQueue(files) {
     let fileId = stringToId(filename);
     let progressBar = T.uploadLoading();
     progressBar.querySelector(".upload-name").textContent = filename;
-    progressBar.querySelector(".upload-loading .bar").setAttribute("id", fileId);
+    progressBar
+      .querySelector(".upload-loading .bar")
+      .setAttribute("id", fileId);
 
     d.querySelector(".dialog-body").appendChild(progressBar);
   }
@@ -402,7 +479,9 @@ async function appendDroppedFiles(entry) {
   return new Promise((resolve, reject) => {
     if (entry.isFile) {
       entry.file((file) => {
-        let fileWithPath = new File([file], entry.fullPath.substring(1), { type: file.type });
+        let fileWithPath = new File([file], entry.fullPath.substring(1), {
+          type: file.type,
+        });
         appendFileToQueue([fileWithPath]);
         _queueUpload.push(fileWithPath);
         resolve();
@@ -416,11 +495,11 @@ async function appendDroppedFiles(entry) {
 
       Promise.all(proms).then(resolve);
     }
-  })
+  });
 }
 
-async function runCommand (cmd) {
-  Dialog.loading.show('Running command...');
+async function runCommand(cmd) {
+  Dialog.loading.show("Running command...");
   try {
     await requestPost("/cm", { cmnd: cmd });
     Toast.success("Command executed");
@@ -432,10 +511,10 @@ async function runCommand (cmd) {
 }
 
 function getSerialCommand(fileName) {
-  let extension = fileName.split('.');
+  let extension = fileName.split(".");
   if (extension.length > 1) {
     extension = extension[extension.length - 1].toLowerCase();
-    return EXECUTABLE[extension]
+    return EXECUTABLE[extension];
   }
 
   return undefined;
@@ -443,13 +522,13 @@ function getSerialCommand(fileName) {
 
 function calcHash(str) {
   let hash = 5381;
-  str = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  str = str.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash) ^ str.charCodeAt(i); // djb2 xor variant
     hash = hash >>> 0; // force unsigned 32-bit
   }
 
-  return hash.toString(16).padStart(8, '0');
+  return hash.toString(16).padStart(8, "0");
 }
 
 let currentDrive;
@@ -458,44 +537,55 @@ async function fetchFiles(drive, path) {
   currentDrive = drive;
   currentPath = path;
   $(".block-space.active")?.classList.remove("active");
-  var driveBtn = document.querySelector(".block-space[data-drive='" + drive + "']");
+  var driveBtn = document.querySelector(
+    ".block-space[data-drive='" + drive + "']",
+  );
   if (driveBtn) driveBtn.classList.add("active");
   $(".current-path").textContent = drive + ":/" + path;
-  Dialog.loading.show('Fetching files...');
+  Dialog.loading.show("Fetching files...");
   try {
     let req = await requestGet("/listfiles", {
       fs: drive,
-      folder: path
+      folder: path,
     });
     renderFileRow(req);
   } catch (e) {
-    Toast.error("Could not load file list. Make sure the device is connected and try again.");
+    Toast.error(
+      "Could not load file list. Make sure the device is connected and try again.",
+    );
   }
   Dialog.loading.hide();
 }
 
 async function fetchSystemInfo() {
-  Dialog.loading.show('Fetching system info...');
+  Dialog.loading.show("Fetching system info...");
   try {
     let req = await requestGet("/systeminfo");
     let info = JSON.parse(req);
     var ver = info.BRUCE_VERSION || "?";
     $(".bruce-version").textContent = ver;
     document.getElementById("sys-version").textContent = ver;
-    var sd = info.SD, lfs = info.LittleFS;
+    var sd = info.SD,
+      lfs = info.LittleFS;
     var sdEl = $(".free-space .free-sd span");
     var fsEl = $(".free-space .free-fs span");
-    if (sdEl) sdEl.innerHTML = (sd ? sd.used + " / " + sd.total : "0 MB");
-    if (fsEl) fsEl.innerHTML = (lfs ? lfs.used + " / " + lfs.total : "0 MB");
-    document.getElementById("sys-sd").textContent = sd ? sd.used + " / " + sd.total : "N/A";
-    document.getElementById("sys-lfs").textContent = lfs ? lfs.used + " / " + lfs.total : "N/A";
+    if (sdEl) sdEl.innerHTML = sd ? sd.used + " / " + sd.total : "0 MB";
+    if (fsEl) fsEl.innerHTML = lfs ? lfs.used + " / " + lfs.total : "0 MB";
+    document.getElementById("sys-sd").textContent = sd
+      ? sd.used + " / " + sd.total
+      : "N/A";
+    document.getElementById("sys-lfs").textContent = lfs
+      ? lfs.used + " / " + lfs.total
+      : "N/A";
 
     /* Try optional info via /cm */
     fetchOptionalInfo("uptime", "sys-uptime");
     fetchOptionalInfo("battery", "sys-battery");
     fetchOptionalInfo("heap", "sys-heap");
   } catch (e) {
-    Toast.error("Could not retrieve device info. The device may be disconnected.");
+    Toast.error(
+      "Could not retrieve device info. The device may be disconnected.",
+    );
   }
   Dialog.loading.hide();
 }
@@ -505,11 +595,13 @@ async function fetchOptionalInfo(cmd, elId) {
     var r = await requestPost("/cm", { cmnd: cmd });
     var val = (r || "").trim();
     if (val) document.getElementById(elId).textContent = val;
-  } catch (_) { /* command not supported */ }
+  } catch (_) {
+    /* command not supported */
+  }
 }
 
 async function saveEditorFile(runFile = false) {
-  Dialog.loading.show('Saving...');
+  Dialog.loading.show("Saving...");
   let editor = $(".dialog.editor .file-content");
   let filename = $(".dialog.editor .editor-file-name").textContent.trim();
   if (isModified(editor)) {
@@ -519,11 +611,13 @@ async function saveEditorFile(runFile = false) {
       await requestPost("/edit", {
         fs: currentDrive,
         name: filename,
-        content: editor.value
+        content: editor.value,
       });
       Toast.success("File saved");
     } catch (e) {
-      Toast.error("Could not save the file. Check your connection and try again.");
+      Toast.error(
+        "Could not save the file. Check your connection and try again.",
+      );
     }
   }
 
@@ -543,7 +637,7 @@ function isModified(target) {
 }
 
 async function openNavigator() {
-  Dialog.show('navigator');
+  Dialog.show("navigator");
   await reloadScreen();
   autoReloadScreen();
 }
@@ -595,7 +689,6 @@ async function taskReloader() {
     return;
   }
 
-
   await reloadScreen();
   setTimeout(taskReloader, timer);
   // better use setTimeout instead of setInterval to avoid overlapping calls
@@ -641,7 +734,7 @@ async function renderTFT(data) {
       img.onerror = (err) => reject(err);
       img.src = url;
     });
-  }
+  };
 
   const drawImageCached = async (img_url, input) => {
     let img = await loadImage(img_url);
@@ -649,16 +742,16 @@ async function renderTFT(data) {
     let drawY = input.y;
 
     if (input.center === 1) {
-      drawX += (canvas.width-img.width) / 2;
-      drawY += (canvas.height-img.height) / 2;
+      drawX += (canvas.width - img.width) / 2;
+      drawY += (canvas.height - img.height) / 2;
     }
     ctx.drawImage(img, drawX, drawY);
-  }
+  };
 
   const color565toCSS = (color565) => {
-    const r = ((color565 >> 11) & 0x1F) * 255 / 31;
-    const g = ((color565 >> 5) & 0x3F) * 255 / 63;
-    const b = (color565 & 0x1F) * 255 / 31;
+    const r = (((color565 >> 11) & 0x1f) * 255) / 31;
+    const g = (((color565 >> 5) & 0x3f) * 255) / 63;
+    const b = ((color565 & 0x1f) * 255) / 31;
     return `rgb(${r},${g},${b})`;
   };
 
@@ -671,7 +764,8 @@ async function renderTFT(data) {
     ctx.arcTo(x, y + h, x, y, r);
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
-    if (fill) ctx.fill(); else ctx.stroke();
+    if (fill) ctx.fill();
+    else ctx.stroke();
   };
 
   for (const { fn, in: input } of data) {
@@ -679,8 +773,8 @@ async function renderTFT(data) {
 
     switch (fn) {
       case 99: // SCREEN_INFO
-        canvas.width=input.width;
-        canvas.height=input.height;
+        canvas.width = input.width;
+        canvas.height = input.height;
       case 0: // FILLSCREEN
         ctx.fillStyle = color565toCSS(input.fg);
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -759,9 +853,9 @@ async function renderTFT(data) {
 
       case 12: // DRAWARC
         ctx.strokeStyle = color565toCSS(input.fg);
-        ctx.lineWidth = (input.r - input.ir) || 1;
-        const sa = (input.startAngle + 90 || 0) * Math.PI / 180;
-        const ea = (input.endAngle + 90 || 0) * Math.PI / 180;
+        ctx.lineWidth = input.r - input.ir || 1;
+        const sa = ((input.startAngle + 90 || 0) * Math.PI) / 180;
+        const ea = ((input.endAngle + 90 || 0) * Math.PI) / 180;
         const radius = (input.r + input.ir) / 2;
         ctx.beginPath();
         ctx.arc(input.x, input.y, radius, sa, ea);
@@ -782,29 +876,41 @@ async function renderTFT(data) {
       case 17: // PRINT
         // This must be enhanced to make font width be multiple of 6px, the font used here is multiple of 4.5px,
         // "\n" are not treated, and long lines do not split into multi lines..
-        if(input.bg == input.fg) { input.bg = 0; }
+        if (input.bg == input.fg) {
+          input.bg = 0;
+        }
         ctx.fillStyle = color565toCSS(input.bg);
 
         input.txt = input.txt.replaceAll("\\n", ""); // remove new lines
-        var fw = input.size===3 ? 13.5 : input.size===2 ? 9 : 4.5;
+        var fw = input.size === 3 ? 13.5 : input.size === 2 ? 9 : 4.5;
         var o = 0;
-        if(fn === 15) o = input.txt.length * fw;
-        if(fn === 14) o = input.txt.length * fw/2;
+        if (fn === 15) o = input.txt.length * fw;
+        if (fn === 14) o = (input.txt.length * fw) / 2;
         // draw a rectangle at the text area, to avoid overlapping texts
-        ctx.fillRect(input.x-o, input.y, input.txt.length * fw, input.size * 8);
+        ctx.fillRect(
+          input.x - o,
+          input.y,
+          input.txt.length * fw,
+          input.size * 8,
+        );
 
         ctx.fillStyle = color565toCSS(input.fg);
         ctx.font = input.size * 8 + "px monospace";
         ctx.textBaseline = "top";
         ctx.textAlign = fn === 14 ? "center" : fn === 15 ? "right" : "left";
         ctx.fillText(input.txt, input.x, input.y);
-      break;
+        break;
 
       case 18: // DRAWIMAGE
-        let url = "/file?fs=" + input.fs + "&name=" + encodeURIComponent(input.file) + "&action=image";
+        let url =
+          "/file?fs=" +
+          input.fs +
+          "&name=" +
+          encodeURIComponent(input.file) +
+          "&action=image";
         if (IS_DEV) url = "/bruce" + url;
         await drawImageCached(url, input);
-      break;
+        break;
 
       case 19: // DRAWPIXEL
         ctx.fillStyle = color565toCSS(input.fg);
@@ -847,7 +953,9 @@ function drawCanvasLoading() {
 }
 
 let oldTimerSession = sessionStorage.getItem("autoReload") || "0";
-var autoOpt = eConfigAutoReload.querySelector('option[value="' + oldTimerSession + '"]');
+var autoOpt = eConfigAutoReload.querySelector(
+  'option[value="' + oldTimerSession + '"]',
+);
 if (autoOpt) autoOpt.selected = true;
 eConfigAutoReload.addEventListener("change", async (e) => {
   e.preventDefault();
@@ -878,12 +986,12 @@ $(".container").addEventListener("click", async (e) => {
   let browseAction = e.target.closest(".act-browse");
   if (browseAction) {
     e.preventDefault();
-    let drive = browseAction.getAttribute("data-drive")
-      || currentDrive
-      || "LittleFS";
-    let path = browseAction.getAttribute("data-path")
-      || browseAction.closest("tr").getAttribute('data-path')
-      || "/";
+    let drive =
+      browseAction.getAttribute("data-drive") || currentDrive || "LittleFS";
+    let path =
+      browseAction.getAttribute("data-path") ||
+      browseAction.closest("tr").getAttribute("data-path") ||
+      "/";
     if (drive === currentDrive && path === currentPath) return;
 
     fetchFiles(drive, path);
@@ -900,9 +1008,15 @@ $(".container").addEventListener("click", async (e) => {
     editor.value = "";
 
     // Load file content
-    Dialog.loading.show('Fetching content...');
+    Dialog.loading.show("Fetching content...");
     try {
-      let r = await requestGet("/file?fs=" + currentDrive + "&name=" + encodeURIComponent(file) + "&action=edit");
+      let r = await requestGet(
+        "/file?fs=" +
+          currentDrive +
+          "&name=" +
+          encodeURIComponent(file) +
+          "&action=edit",
+      );
       editor.value = r;
       editor.setAttribute("data-hash", calcHash(r));
 
@@ -915,11 +1029,13 @@ $(".container").addEventListener("click", async (e) => {
         $(".act-run-edit-file").classList.remove("hidden");
       }
     } catch (err) {
-      Toast.error("Could not open the file. It may have been deleted or moved.");
+      Toast.error(
+        "Could not open the file. It may have been deleted or moved.",
+      );
     }
 
     Dialog.loading.hide();
-    Dialog.show('editor');
+    Dialog.show("editor");
     return;
   }
 
@@ -952,24 +1068,28 @@ $(".container").addEventListener("click", async (e) => {
   let actDeleteFile = e.target.closest(".act-delete");
   if (actDeleteFile) {
     e.preventDefault();
-    var file = actDeleteFile.closest(".file-row").getAttribute("data-file")
-      || actDeleteFile.closest(".file-row").getAttribute("data-path");
+    var file =
+      actDeleteFile.closest(".file-row").getAttribute("data-file") ||
+      actDeleteFile.closest(".file-row").getAttribute("data-path");
     if (!file) return;
 
     var confirmed = await Dialog.confirm({
       title: "Delete",
-      message: "Are you sure you want to DELETE <strong>" + file + "</strong>?<br><br>This action <strong>cannot be undone</strong>!",
+      message:
+        "Are you sure you want to DELETE <strong>" +
+        file +
+        "</strong>?<br><br>This action <strong>cannot be undone</strong>!",
       confirmText: "Delete",
-      danger: true
+      danger: true,
     });
     if (!confirmed) return;
 
-    Dialog.loading.show('Deleting...');
+    Dialog.loading.show("Deleting...");
     try {
       await requestGet("/file", {
         fs: currentDrive,
-        action: 'delete',
-        name: file
+        action: "delete",
+        name: file,
       });
       Toast.success("Deleted: " + file);
     } catch (err) {
@@ -993,7 +1113,6 @@ $(".container").addEventListener("click", async (e) => {
   }
 });
 
-
 $(".dialog-background").addEventListener("click", function (e) {
   if (e.target.matches(".act-dialog-close")) {
     e.preventDefault();
@@ -1010,7 +1129,7 @@ $(".dialog-background").addEventListener("click", function (e) {
           title: "Unsaved Changes",
           message: "You have unsaved changes. Discard them?",
           confirmText: "Discard",
-          danger: false
+          danger: false,
         }).then(function (ok) {
           if (ok) Dialog.hide();
         });
@@ -1040,14 +1159,14 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
   let [actionType, path] = action.split("|");
   try {
     if (actionType.startsWith("rename")) {
-      Dialog.loading.show('Renaming...');
+      Dialog.loading.show("Renaming...");
       await requestPost("/rename", {
         fs: currentDrive,
         filePath: path,
-        fileName: fileName
+        fileName: fileName,
       });
     } else if (actionType === "createFolder") {
-      Dialog.loading.show('Creating Folder...');
+      Dialog.loading.show("Creating Folder...");
       let urlQuery = new URLSearchParams({
         fs: currentDrive,
         action: "create",
@@ -1055,7 +1174,7 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
       });
       await requestGet("/file?" + urlQuery.toString());
     } else if (actionType === "createFile") {
-      Dialog.loading.show('Creating File...');
+      Dialog.loading.show("Creating File...");
       let urlQuery = new URLSearchParams({
         fs: currentDrive,
         action: "createfile",
@@ -1063,7 +1182,7 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
       });
       await requestGet("/file?" + urlQuery.toString());
     } else if (actionType === "serial") {
-      Dialog.loading.show('Running Serial Command...');
+      Dialog.loading.show("Running Serial Command...");
       await runCommand(fileName);
       refreshList = false;
     }
@@ -1083,11 +1202,11 @@ $(".act-save-credential").addEventListener("click", async (e) => {
     return;
   }
 
-  Dialog.loading.show('Saving WiFi Credentials...');
+  Dialog.loading.show("Saving WiFi Credentials...");
   try {
     await requestGet("/wifi", {
       usr: username,
-      pwd: password
+      pwd: password,
     });
     Toast.success("Credentials saved!");
     Dialog.hide();
@@ -1121,10 +1240,10 @@ $(".act-reboot").addEventListener("click", async (e) => {
     title: "Reboot Device",
     message: "Are you sure you want to <strong>reboot</strong> the device?",
     confirmText: "Reboot",
-    danger: true
+    danger: true,
   });
   if (!confirmed) return;
-  Dialog.loading.show('Rebooting...');
+  Dialog.loading.show("Rebooting...");
   try {
     await requestGet("/reboot");
     setTimeout(() => {
@@ -1143,16 +1262,19 @@ if (logoutBtn) {
     e.preventDefault();
     var confirmed = await Dialog.confirm({
       title: "Log Out",
-      message: "Are you sure you want to <strong>log out</strong> of the WebUI?",
+      message:
+        "Are you sure you want to <strong>log out</strong> of the WebUI?",
       confirmText: "Log Out",
-      danger: true
+      danger: true,
     });
     if (!confirmed) return;
-    Dialog.loading.show('Logging out...');
+    Dialog.loading.show("Logging out...");
     try {
       await requestGet("/logout");
-    } catch (x) { /* ignore */ }
-    window.location.href = '/logout.html';
+    } catch (x) {
+      /* ignore */
+    }
+    window.location.href = "/logout.html";
   });
 }
 
@@ -1169,8 +1291,9 @@ $(".navigator-canvas").addEventListener("click", async (e) => {
 });
 
 window.addEventListener("keydown", async (e) => {
-  let key = e.key.toLowerCase()
-  if ($(".dialog.editor:not(.hidden)")) { // means editor tab is open
+  let key = e.key.toLowerCase();
+  if ($(".dialog.editor:not(.hidden)")) {
+    // means editor tab is open
     if ((e.ctrlKey || e.metaKey) && key === "s") {
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -1186,18 +1309,18 @@ window.addEventListener("keydown", async (e) => {
 
   if ($(".dialog.navigator:not(.hidden)")) {
     const map_navigator = {
-      "arrowup": "Up",
-      "arrowdown": "Down",
-      "arrowleft": "Prev",
-      "arrowright": "Next",
-      "enter": "Sel",
-      "backspace": "Esc",
-      "m": "Menu",
-      "pageup": "NextPage",
-      "pagedown": "PrevPage",
+      arrowup: "Up",
+      arrowdown: "Down",
+      arrowleft: "Prev",
+      arrowright: "Next",
+      enter: "Sel",
+      backspace: "Esc",
+      m: "Menu",
+      pageup: "NextPage",
+      pagedown: "PrevPage",
     };
 
-    if (key === 'r') {
+    if (key === "r") {
       e.preventDefault();
       e.stopImmediatePropagation();
       reloadScreen();
@@ -1207,7 +1330,9 @@ window.addEventListener("keydown", async (e) => {
     if (key in map_navigator) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      $(`.navigator-canvas .nav[data-direction="${map_navigator[key]}"]`).click();
+      $(
+        `.navigator-canvas .nav[data-direction="${map_navigator[key]}"]`,
+      ).click();
       return;
     }
   }
@@ -1220,7 +1345,7 @@ window.addEventListener("keydown", async (e) => {
           title: "Unsaved Changes",
           message: "You have unsaved changes. Discard them?",
           confirmText: "Discard",
-          danger: false
+          danger: false,
         });
         if (!ok) return;
       }
@@ -1233,7 +1358,6 @@ window.addEventListener("keydown", async (e) => {
 });
 
 $(".file-content").addEventListener("keyup", function (e) {
-
   if ($(".dialog.editor:not(.hidden)")) {
     // map special characters to their closing pair
     const map_chars = {
@@ -1243,7 +1367,7 @@ $(".file-content").addEventListener("keyup", function (e) {
       '"': '"',
       "'": "'",
       "`": "`",
-      "<": ">"
+      "<": ">",
     };
 
     // if the key pressed is a special character, insert the closing pair
@@ -1263,9 +1387,15 @@ $(".file-content").addEventListener("keyup", function (e) {
 /* ---- NEW: Dropzone overlay ---- */
 var dropzone = document.getElementById("dropzone");
 if (dropzone) {
-  window.addEventListener("dragenter", function () { dropzone.classList.remove("hidden"); });
-  dropzone.addEventListener("dragleave", function () { dropzone.classList.add("hidden"); });
-  dropzone.addEventListener("dragover", function (e) { e.preventDefault(); });
+  window.addEventListener("dragenter", function () {
+    dropzone.classList.remove("hidden");
+  });
+  dropzone.addEventListener("dragleave", function () {
+    dropzone.classList.add("hidden");
+  });
+  dropzone.addEventListener("dragover", function (e) {
+    e.preventDefault();
+  });
   dropzone.addEventListener("drop", async function (e) {
     e.preventDefault();
     dropzone.classList.add("hidden");
@@ -1275,7 +1405,10 @@ if (dropzone) {
       var entry = items[i].webkitGetAsEntry();
       if (entry) await appendDroppedFiles(entry);
     }
-    if (!_runningUpload) setTimeout(function () { if (_queueUpload.length > 0) uploadFile(); }, 100);
+    if (!_runningUpload)
+      setTimeout(function () {
+        if (_queueUpload.length > 0) uploadFile();
+      }, 100);
   });
 }
 
@@ -1287,10 +1420,18 @@ if (searchInput) {
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(function () {
       var q = searchInput.value.toLowerCase().trim();
-      var rows = document.querySelectorAll("#file-tbody .file-row, #file-tbody .path-row");
+      var rows = document.querySelectorAll(
+        "#file-tbody .file-row, #file-tbody .path-row",
+      );
       rows.forEach(function (row) {
-        if (!q) { row.style.display = ""; return; }
-        if (row.classList.contains("path-row")) { row.style.display = q ? "none" : ""; return; }
+        if (!q) {
+          row.style.display = "";
+          return;
+        }
+        if (row.classList.contains("path-row")) {
+          row.style.display = q ? "none" : "";
+          return;
+        }
         var name = (row.querySelector(".col-name") || {}).textContent || "";
         row.style.display = name.toLowerCase().indexOf(q) !== -1 ? "" : "none";
       });
@@ -1322,7 +1463,10 @@ document.addEventListener("change", function (e) {
   if (!cb) return;
   var row = cb.closest(".file-row");
   if (!row) return;
-  var path = cb.dataset.path || row.getAttribute("data-file") || row.getAttribute("data-path");
+  var path =
+    cb.dataset.path ||
+    row.getAttribute("data-file") ||
+    row.getAttribute("data-path");
   if (!path) return;
   if (cb.checked) {
     _selectedFiles[path] = true;
@@ -1357,10 +1501,12 @@ if (selectAll) {
 if (batchDeselect) {
   batchDeselect.addEventListener("click", function () {
     _selectedFiles = {};
-    document.querySelectorAll("#file-tbody .file-row .file-checkbox").forEach(function (cb) {
-      cb.checked = false;
-      cb.closest(".file-row").classList.remove("selected");
-    });
+    document
+      .querySelectorAll("#file-tbody .file-row .file-checkbox")
+      .forEach(function (cb) {
+        cb.checked = false;
+        cb.closest(".file-row").classList.remove("selected");
+      });
     updateBatchBar();
   });
 }
@@ -1371,17 +1517,26 @@ if (batchDelete) {
     if (paths.length === 0) return;
     var confirmed = await Dialog.confirm({
       title: "Batch Delete",
-      message: "Delete <strong>" + paths.length + "</strong> selected file(s)?<br><br>This <strong>cannot be undone</strong>.",
+      message:
+        "Delete <strong>" +
+        paths.length +
+        "</strong> selected file(s)?<br><br>This <strong>cannot be undone</strong>.",
       confirmText: "Delete All",
-      danger: true
+      danger: true,
     });
     if (!confirmed) return;
     Dialog.loading.show("Deleting " + paths.length + " files...");
     var errors = 0;
     for (var i = 0; i < paths.length; i++) {
       try {
-        await requestGet("/file", { fs: currentDrive, action: "delete", name: paths[i] });
-      } catch (e) { errors++; }
+        await requestGet("/file", {
+          fs: currentDrive,
+          action: "delete",
+          name: paths[i],
+        });
+      } catch (e) {
+        errors++;
+      }
     }
     Dialog.loading.hide();
     if (errors === 0) Toast.success("Deleted " + paths.length + " files");
@@ -1400,11 +1555,17 @@ function renderFileRowChunked(fileList, doneCallback) {
   _selectedFiles = {};
   updateBatchBar();
 
-  var lines = fileList.split("\n").filter(function (l) { return l.trim(); });
+  var lines = fileList.split("\n").filter(function (l) {
+    return l.trim();
+  });
   lines.sort(function (a, b) {
-    var aT = a.split(':')[0], bT = b.split(':')[0];
+    var aT = a.split(":")[0],
+      bT = b.split(":")[0];
     if (aT !== bT) return bT.localeCompare(aT);
-    return a.substring(a.indexOf(':') + 1).toLowerCase().localeCompare(b.substring(b.indexOf(':') + 1).toLowerCase());
+    return a
+      .substring(a.indexOf(":") + 1)
+      .toLowerCase()
+      .localeCompare(b.substring(b.indexOf(":") + 1).toLowerCase());
   });
 
   var idx = 0;
@@ -1416,17 +1577,20 @@ function renderFileRowChunked(fileList, doneCallback) {
 
     for (; idx < end; idx++) {
       var line = lines[idx];
-      var parts = line.split(':');
+      var parts = line.split(":");
       var type = parts[0];
       if (parts.length < 3) continue;
       var size = parts.pop();
-      var name = parts.slice(1).join(':');
-      var dPath = ((currentPath.endsWith("/") ? currentPath : currentPath + "/") + name).replace(/\/\//g, "/");
+      var name = parts.slice(1).join(":");
+      var dPath = (
+        (currentPath.endsWith("/") ? currentPath : currentPath + "/") + name
+      ).replace(/\/\//g, "/");
 
       if (type === "pa") {
         if (dPath === "/") continue;
         var er = tmpl.content.querySelector(".path-row").cloneNode(true);
-        var preF = currentPath.substring(0, currentPath.lastIndexOf('/')) || "/";
+        var preF =
+          currentPath.substring(0, currentPath.lastIndexOf("/")) || "/";
         er.setAttribute("data-path", preF);
         er.querySelector("td").classList.add("act-browse");
         fragment.appendChild(er);
@@ -1437,19 +1601,30 @@ function renderFileRowChunked(fileList, doneCallback) {
           er2.querySelector(".col-name").classList.add("act-browse");
           er2.setAttribute("data-path", dPath);
           er2.querySelector(".col-action").classList.add("type-folder");
-          er2.querySelector('.act-rename').setAttribute("data-action", "renameFolder");
+          er2
+            .querySelector(".act-rename")
+            .setAttribute("data-action", "renameFolder");
         } else {
           er2.setAttribute("data-file", dPath);
-          er2.querySelector('.act-rename').setAttribute("data-action", "renameFile");
+          er2
+            .querySelector(".act-rename")
+            .setAttribute("data-action", "renameFile");
           er2.querySelector(".col-name").classList.add("act-edit-file");
           er2.querySelector(".col-action").classList.add("type-file");
-          var dlUrl = "/file?fs=" + currentDrive + "&name=" + encodeURIComponent(dPath) + "&action=download";
+          var dlUrl =
+            "/file?fs=" +
+            currentDrive +
+            "&name=" +
+            encodeURIComponent(dPath) +
+            "&action=download";
           if (IS_DEV) dlUrl = "/bruce" + dlUrl;
           er2.querySelector(".act-download").setAttribute("download", name);
           er2.querySelector(".act-download").setAttribute("href", dlUrl);
           var sc = getSerialCommand(name);
           if (sc) {
-            er2.querySelector(".act-play").setAttribute("data-cmd", sc + " " + dPath);
+            er2
+              .querySelector(".act-play")
+              .setAttribute("data-cmd", sc + " " + dPath);
             er2.querySelector(".col-action").classList.add("executable");
           }
           er2.querySelector(".col-size").textContent = size;
@@ -1488,7 +1663,9 @@ renderFileRow = function (fileList) {
 var CHUNK_SIZE = 256 * 1024; // 256KB
 function uploadFileChunked(file) {
   return new Promise(function (resolve, reject) {
-    var fileId = stringToId((file.webkitRelativePath || file.name) + '_chunked');
+    var fileId = stringToId(
+      (file.webkitRelativePath || file.name) + "_chunked",
+    );
     var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     var chunkIndex = 0;
 
@@ -1497,7 +1674,7 @@ function uploadFileChunked(file) {
       var end = Math.min(start + CHUNK_SIZE, file.size);
       var blob = file.slice(start, end);
       var fd = new FormData();
-      var filename = (file.webkitRelativePath || file.name) + '.chunk';
+      var filename = (file.webkitRelativePath || file.name) + ".chunk";
       fd.append("file", blob, filename);
       fd.append("folder", currentPath);
       fd.append("fs", currentDrive);
@@ -1512,7 +1689,8 @@ function uploadFileChunked(file) {
         if (e.lengthComputable) {
           var bar = document.getElementById(fileId);
           if (bar) {
-            var overallPct = ((chunkIndex * CHUNK_SIZE + e.loaded) / file.size) * 100;
+            var overallPct =
+              ((chunkIndex * CHUNK_SIZE + e.loaded) / file.size) * 100;
             bar.style.width = Math.min(100, Math.round(overallPct)) + "%";
           }
         }
@@ -1529,8 +1707,12 @@ function uploadFileChunked(file) {
           reject(new Error("Chunk upload failed at " + chunkIndex));
         }
       };
-      req.onerror = function () { reject(new Error("Network error")); };
-      req.onabort = function () { reject(new Error("Aborted")); };
+      req.onerror = function () {
+        reject(new Error("Network error"));
+      };
+      req.onabort = function () {
+        reject(new Error("Aborted"));
+      };
       req.open("POST", realUrl, true);
       req.send(fd);
     }
@@ -1566,12 +1748,18 @@ uploadFile = function () {
 
     if (file.size > CHUNK_SIZE * 2) {
       // Large file: use chunked upload
-      var chunkFileId = stringToId(filename + '_chunked');
+      var chunkFileId = stringToId(filename + "_chunked");
       // Add chunk info to existing progress bar if available
       var existingBar = document.getElementById(chunkFileId);
       if (!existingBar && bar) bar.id = chunkFileId;
 
-      uploadFileChunked(file).then(function () { onDone(null); }).catch(function (e) { onDone(e); });
+      uploadFileChunked(file)
+        .then(function () {
+          onDone(null);
+        })
+        .catch(function (e) {
+          onDone(e);
+        });
     } else {
       // Small file: normal upload
       var fd = new FormData();
@@ -1592,8 +1780,12 @@ uploadFile = function () {
         if (req.status >= 200 && req.status < 300) onDone(null);
         else onDone(new Error("Upload failed"));
       };
-      req.onabort = function () { onDone(new Error("Aborted")); };
-      req.onerror = function () { onDone(new Error("Network error")); };
+      req.onabort = function () {
+        onDone(new Error("Aborted"));
+      };
+      req.onerror = function () {
+        onDone(new Error("Network error"));
+      };
       req.open("POST", realUrl, true);
       req.send(fd);
     }
@@ -1607,29 +1799,37 @@ document.getElementById("login-btn").addEventListener("click", function () {
   document.getElementById("login-error").classList.add("hidden");
   loginAuthenticate(
     document.getElementById("login-username").value.trim(),
-    document.getElementById("login-password").value
+    document.getElementById("login-password").value,
   );
 });
 
-document.getElementById("login-password").addEventListener("keydown", function (e) {
-  if (e.key === "Enter") document.getElementById("login-btn").click();
-});
+document
+  .getElementById("login-password")
+  .addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("login-btn").click();
+  });
 
-document.getElementById("login-username").addEventListener("keydown", function (e) {
-  if (e.key === "Enter") document.getElementById("login-password").focus();
-});
+document
+  .getElementById("login-username")
+  .addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("login-password").focus();
+  });
 
-document.getElementById("password-toggle").addEventListener("click", function () {
-  var pw = document.getElementById("login-password");
-  this.classList.toggle("visible");
-  pw.type = pw.type === "password" ? "text" : "password";
-  this.title = pw.type === "password" ? "Show password" : "Hide password";
-});
+document
+  .getElementById("password-toggle")
+  .addEventListener("click", function () {
+    var pw = document.getElementById("login-password");
+    this.classList.toggle("visible");
+    pw.type = pw.type === "password" ? "text" : "password";
+    this.title = pw.type === "password" ? "Show password" : "Hide password";
+  });
 
 async function startApp() {
   Dialog.loading.hide();
   await Promise.all([fetchSystemInfo(), fetchFiles("LittleFS", "/")]);
-  setTimeout(function () { ThemeCache.updateDot(); }, 50);
+  setTimeout(function () {
+    ThemeCache.updateDot();
+  }, 50);
 }
 
 /* ---- Init ---- */

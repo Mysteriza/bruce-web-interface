@@ -1,7 +1,8 @@
 function $(s) { return document.querySelector(s) }
+const _TMPL = $('#t');
 const IS_DEV = (window.location.host === "127.0.0.1:8080");
 const T = {
-  master: $('#t'),
+  master: _TMPL,
   fileRow: function () {
     const tmp = document.createElement('template');
     tmp.innerHTML = this.master.content.querySelector('table tr.file-row').outerHTML;
@@ -77,6 +78,14 @@ const Toast = {
   }
 };
 
+const DIALOG_FORM = {
+  renameFolder: { title: "Rename Folder", label: "New Name:", action: "Rename" },
+  renameFile:   { title: "Rename File",   label: "New Name:", action: "Rename" },
+  createFolder: { title: "Create Folder", label: "Folder Name:", action: "Create Folder" },
+  createFile:   { title: "Create File",   label: "File Name:", action: "Create File" },
+  serial:       { title: "Serial Command", label: "Command:",  action: "Run" }
+};
+
 /* ---- ORIGINAL Dialog (kept intact, with .confirm() added) ---- */
 const Dialog = {
   _bg: function (show) {
@@ -111,35 +120,7 @@ const Dialog = {
     }
   },
   showOneInput: function (name) {
-    const dbForm = {
-      renameFolder: {
-        title: "Rename Folder",
-        label: "New Name:",
-        action: "Rename"
-      },
-      renameFile: {
-        title: "Rename File",
-        label: "New Name:",
-        action: "Rename"
-      },
-      createFolder: {
-        title: "Create Folder",
-        label: "Folder Name:",
-        action: "Create Folder"
-      },
-      createFile: {
-        title: "Create File",
-        label: "File Name:",
-        action: "Create File"
-      },
-      serial: {
-        title: "Serial Command",
-        label: "Command:",
-        action: "Run"
-      }
-    };
-
-    let config = dbForm[name];
+    let config = DIALOG_FORM[name];
     if (!config) {
       alert("Invalid dialog name: " + name);
       console.error("Dialog.showOneInput: Invalid dialog name", name);
@@ -194,50 +175,62 @@ const Dialog = {
   }
 };
 
+const REQ_TIMEOUT = 10000;
+const REQ_RETRIES = 2;
+
 async function requestGet (url, data) {
-  return new Promise((resolve, reject) => {
-    let req = new XMLHttpRequest();
-    let realUrl = url;
-    if (IS_DEV) realUrl = "/bruce" + url;
-    if (data) {
-      let urlParams = new URLSearchParams(data);
-      realUrl += "?" + urlParams.toString();
-    }
-    req.open("GET", realUrl, true);
-    req.onload = () => {
-      if (req.status >= 200 && req.status < 300) {
-        resolve(req.responseText);
-      } else {
-        reject(new Error("Request failed with status " + req.status));
-      }
-    };
-    req.onerror = () => {
-      reject(new Error("Network error"))
-    };
-    req.send();
-  });
+  return _requestWithRetry("GET", url, data, null);
 }
 
 async function requestPost (url, data) {
-  return new Promise((resolve, reject) => {
-    let fd = new FormData();
-    for (let key in data) {
-      if (data.hasOwnProperty(key)) fd.append(key, data[key]);
-    }
+  return _requestWithRetry("POST", url, data, data);
+}
 
+function _requestWithRetry(method, url, params, body, attempt) {
+  if (attempt === undefined) attempt = 0;
+  return new Promise((resolve, reject) => {
+    let req = new XMLHttpRequest();
     let realUrl = url;
     if (IS_DEV) realUrl = "/bruce" + url;
-    let req = new XMLHttpRequest();
-    req.open("POST", realUrl, true);
+    if (method === "GET" && params) {
+      realUrl += "?" + new URLSearchParams(params).toString();
+    }
+    req.open(method, realUrl, true);
+    req.timeout = REQ_TIMEOUT;
     req.onload = () => {
       if (req.status >= 200 && req.status < 300) {
         resolve(req.responseText);
       } else {
-        reject(new Error("Request failed with status " + req.status));
+        if (attempt < REQ_RETRIES && req.status >= 500) {
+          setTimeout(() => resolve(_requestWithRetry(method, url, params, body, attempt + 1)), 1000 * (attempt + 1));
+        } else {
+          reject(new Error("Request failed with status " + req.status));
+        }
       }
     };
-    req.onerror = () => reject(new Error("Network error"));
-    req.send(fd);
+    req.ontimeout = () => {
+      if (attempt < REQ_RETRIES) {
+        setTimeout(() => resolve(_requestWithRetry(method, url, params, body, attempt + 1)), 1000 * (attempt + 1));
+      } else {
+        reject(new Error("Request timed out"));
+      }
+    };
+    req.onerror = () => {
+      if (attempt < REQ_RETRIES) {
+        setTimeout(() => resolve(_requestWithRetry(method, url, params, body, attempt + 1)), 1000 * (attempt + 1));
+      } else {
+        reject(new Error("Network error"));
+      }
+    };
+    if (method === "POST") {
+      let fd = new FormData();
+      for (let key in body) {
+        if (body.hasOwnProperty(key)) fd.append(key, body[key]);
+      }
+      req.send(fd);
+    } else {
+      req.send();
+    }
   });
 }
 
@@ -288,49 +281,6 @@ async function appendDroppedFiles(entry) {
     }
   })
 }
-async function uploadFile () {
-  if (_queueUpload.length === 0) {
-    _runningUpload = false;
-    $(".dialog.upload .dialog-body").innerHTML = "";
-    fetchSystemInfo();
-    fetchFiles(currentDrive, currentPath);
-    Dialog.hide();
-    return;
-  }
-
-  return new Promise((resolve, reject) => {
-    _runningUpload = true;
-    let file = _queueUpload.shift();
-    let fd = new FormData();
-    let filename = file.webkitRelativePath || file.name;
-    let fileId = stringToId(filename);
-    fd.append("file", file, filename);
-    fd.append("folder", currentPath);
-    fd.append("fs", currentDrive);
-
-    let realUrl = "/upload";
-    if (IS_DEV) realUrl = "/bruce" + realUrl;
-    let req = new XMLHttpRequest();
-    req.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        var percent = (e.loaded / e.total) * 100;
-        $("#" + fileId).style.width = Math.round(percent) + "%";
-      }
-    };
-    req.onload = () => {
-      uploadFile();
-      if (req.status >= 200 && req.status < 300) {
-        resolve(req.responseText);
-      } else {
-        reject();
-      }
-    };
-    req.onabort = () => reject();
-    req.onerror = () => reject();
-    req.open("POST", realUrl, true);
-    req.send(fd);
-  });
-}
 
 async function runCommand (cmd) {
   Dialog.loading.show('Running command...');
@@ -363,64 +313,6 @@ function calcHash(str) {
   }
 
   return hash.toString(16).padStart(8, '0');
-}
-
-function renderFileRow(fileList) {
-  $("table.explorer tbody").innerHTML = "";
-  fileList.split("\n").sort((a, b) => {
-    let [aFirst, ...aRest] = a.split(':');
-    let [bFirst, ...bRest] = b.split(':');
-
-    if (aFirst !== bFirst) {
-      return bFirst.localeCompare(aFirst);
-    }
-
-    let aRestStr = aRest.join(':').toLowerCase();
-    let bRestStr = bRest.join(':').toLowerCase();
-    return aRestStr.localeCompare(bRestStr);
-  }).forEach((line) => {
-    let e;
-    let [type, name, size] = line.split(":");
-    if (size === undefined) return;
-    let dPath = ((currentPath.endsWith("/") ? currentPath : currentPath + "/") + name).replace(/\/\//g, "/");
-    if (type === "pa") {
-      if (dPath === "/") return;
-      e = T.pathRow();
-      let preFolder = currentPath.substring(0, currentPath.lastIndexOf('/'));
-      if (preFolder === "") preFolder = "/";
-      e.querySelector(".path-row").setAttribute("data-path", preFolder);
-      e.querySelector(".path-row td").classList.add("act-browse");
-    } else if (type === "Fi") {
-      e = T.fileRow();
-      e.querySelector('.file-row').setAttribute("data-file", dPath);
-      e.querySelector('.act-rename').setAttribute("data-action", "renameFile");
-      e.querySelector(".col-name").classList.add("act-edit-file");
-      e.querySelector(".col-name").textContent = name;
-      e.querySelector(".col-name").setAttribute("title", name);
-      e.querySelector(".col-size").textContent = size;
-      e.querySelector(".col-action").classList.add("type-file");
-
-      let downloadUrl = "/file?fs=" + currentDrive + "&name=" + encodeURIComponent(dPath) + "&action=download";
-      if (IS_DEV) downloadUrl = "/bruce" + downloadUrl;
-      e.querySelector(".act-download").setAttribute("download", name);
-      e.querySelector(".act-download").setAttribute("href", downloadUrl);
-
-      let serialCmd = getSerialCommand(name);
-      if (serialCmd) {
-        e.querySelector(".act-play").setAttribute("data-cmd", serialCmd + " " + dPath);
-        e.querySelector(".col-action").classList.add("executable");
-      }
-    } else if (type === "Fo") {
-      e = T.fileRow();
-      e.querySelector(".col-name").classList.add("act-browse");
-      e.querySelector('.file-row').setAttribute("data-path", dPath);
-      e.querySelector('.act-rename').setAttribute("data-action", "renameFolder");
-      e.querySelector(".col-name").textContent = name;
-      e.querySelector(".col-name").setAttribute("title", name);
-      e.querySelector(".col-action").classList.add("type-folder");
-    }
-    $("table.explorer tbody").appendChild(e);
-  });
 }
 
 let currentDrive;
@@ -566,7 +458,18 @@ async function autoReloadScreen() {
 
 /// TFT RENDER
 let loadingDrawn = false;
-const imageCache = {}; // global
+const IMG_CACHE_MAX = 30;
+const imageCache = {};
+const _cacheKeys = [];
+function _cacheImage(url, img) {
+  if (imageCache[url]) return;
+  if (_cacheKeys.length >= IMG_CACHE_MAX) {
+    var old = _cacheKeys.shift();
+    delete imageCache[old];
+  }
+  _cacheKeys.push(url);
+  imageCache[url] = img;
+}
 async function renderTFT(data) {
   loadingDrawn = false;
   const canvas = $("#navigator-screen");
@@ -577,7 +480,7 @@ async function renderTFT(data) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
-        imageCache[url] = img;
+        _cacheImage(url, img);
         resolve(img);
       };
       img.onerror = (err) => reject(err);
@@ -803,27 +706,6 @@ btnForceReload.addEventListener("click", async (e) => {
   await reloadScreen();
 });
 
-window.ondragenter = function () { $(".upload-area").classList.remove("hidden"); };
-$(".upload-area").ondragleave = function () { $(".upload-area").classList.add("hidden"); };
-$(".upload-area").ondragover = function (e) { e.preventDefault(); };
-$(".upload-area").ondrop = async function (e) {
-  e.preventDefault();
-  $(".upload-area").classList.add("hidden")
-  const items = e.dataTransfer.items;
-  if (!items || items.length === 0) return;
-
-  for (let i of items) {
-    let entry = i.webkitGetAsEntry();
-    if (!entry) continue;
-    await appendDroppedFiles(entry);
-  }
-
-  if (!_runningUpload) setTimeout(() => {
-    if (_queueUpload.length === 0) return;
-    uploadFile();
-  }, 100);
-};
-
 document.querySelectorAll(".inp-uploader").forEach((el) => {
   el.addEventListener("change", async (e) => {
     let files = e.target.files;
@@ -957,11 +839,31 @@ $(".container").addEventListener("click", async (e) => {
 });
 
 
-$(".dialog-background").addEventListener("click", async (e) => {
+$(".dialog-background").addEventListener("click", function (e) {
   if (e.target.matches(".act-dialog-close")) {
     e.preventDefault();
     Dialog.hide();
     return;
+  }
+  if (e.target === $(".dialog-background")) {
+    var customConfirm = $(".dialog.custom-confirm:not(.hidden)");
+    if (customConfirm) return;
+    if ($(".dialog.editor:not(.hidden)")) {
+      var editor = $(".dialog.editor .file-content");
+      if (isModified(editor)) {
+        Dialog.confirm({
+          title: "Unsaved Changes",
+          message: "You have unsaved changes. Discard them?",
+          confirmText: "Discard",
+          danger: false
+        }).then(function (ok) {
+          if (ok) Dialog.hide();
+        });
+        return;
+      }
+    }
+    var anyEscape = $(".dialog:not(.hidden) .act-escape");
+    if (anyEscape) anyEscape.click();
   }
 });
 
@@ -1172,7 +1074,7 @@ $(".file-content").addEventListener("keyup", function (e) {
 
   if ($(".dialog.editor:not(.hidden)")) {
     // map special characters to their closing pair
-    map_chars = {
+    const map_chars = {
       "(": ")",
       "{": "}",
       "[": "]",
@@ -1215,42 +1117,22 @@ if (dropzone) {
   });
 }
 
-/* ---- NEW: Click on dialog overlay closes it (if not custom confirm) ---- */
-$(".dialog-background").addEventListener("click", function (e) {
-  if (e.target === $(".dialog-background")) {
-    var customConfirm = $(".dialog.custom-confirm:not(.hidden)");
-    if (customConfirm) return;
-    if ($(".dialog.editor:not(.hidden)")) {
-      var editor = $(".dialog.editor .file-content");
-      if (isModified(editor)) {
-        Dialog.confirm({
-          title: "Unsaved Changes",
-          message: "You have unsaved changes. Discard them?",
-          confirmText: "Discard",
-          danger: false
-        }).then(function (ok) {
-          if (ok) Dialog.hide();
-        });
-        return;
-      }
-    }
-    var anyEscape = $(".dialog:not(.hidden) .act-escape");
-    if (anyEscape) anyEscape.click();
-  }
-});
-
 /* ---- NEW: Client-side search/filter ---- */
 var searchInput = document.getElementById("search-input");
+var _searchTimer;
 if (searchInput) {
   searchInput.addEventListener("input", function () {
-    var q = this.value.toLowerCase().trim();
-    var rows = document.querySelectorAll("#file-tbody .file-row, #file-tbody .path-row");
-    rows.forEach(function (row) {
-      if (!q) { row.style.display = ""; return; }
-      if (row.classList.contains("path-row")) { row.style.display = q ? "none" : ""; return; }
-      var name = (row.querySelector(".col-name") || {}).textContent || "";
-      row.style.display = name.toLowerCase().indexOf(q) !== -1 ? "" : "none";
-    });
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(function () {
+      var q = searchInput.value.toLowerCase().trim();
+      var rows = document.querySelectorAll("#file-tbody .file-row, #file-tbody .path-row");
+      rows.forEach(function (row) {
+        if (!q) { row.style.display = ""; return; }
+        if (row.classList.contains("path-row")) { row.style.display = q ? "none" : ""; return; }
+        var name = (row.querySelector(".col-name") || {}).textContent || "";
+        row.style.display = name.toLowerCase().indexOf(q) !== -1 ? "" : "none";
+      });
+    }, 200);
   });
 }
 
@@ -1364,7 +1246,7 @@ function renderFileRowChunked(fileList, doneCallback) {
   });
 
   var idx = 0;
-  var tmpl = document.getElementById("t");
+  var tmpl = _TMPL;
 
   function renderNext() {
     var end = Math.min(idx + _renderChunkSize, lines.length);
@@ -1433,7 +1315,6 @@ function renderFileRowChunked(fileList, doneCallback) {
 }
 
 /* ---- NEW: Override renderFileRow to use chunked version ---- */
-var _origRenderFileRow = renderFileRow;
 renderFileRow = function (fileList) {
   renderFileRowChunked(fileList, function () {
     // restore select-all state after re-render
@@ -1497,7 +1378,6 @@ function uploadFileChunked(file) {
 }
 
 // Override upload to use chunked for large files
-var _origUploadFile = uploadFile;
 uploadFile = function () {
   if (_queueUpload.length === 0) {
     _runningUpload = false;
@@ -1560,12 +1440,7 @@ uploadFile = function () {
 
 /* ---- Init ---- */
 (async function () {
-  // Cache theme.css in background
-  setTimeout(function () { ThemeCache.init(); }, 100);
-
-  // Show theme color dot
-  setTimeout(function () { ThemeCache.updateDot(); }, 500);
-
-  await fetchSystemInfo();
-  await fetchFiles("LittleFS", "/");
+  ThemeCache.init();
+  await Promise.all([fetchSystemInfo(), fetchFiles("LittleFS", "/")]);
+  setTimeout(function () { ThemeCache.updateDot(); }, 50);
 })();

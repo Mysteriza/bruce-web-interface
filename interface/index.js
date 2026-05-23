@@ -1,6 +1,91 @@
 function $(s) { return document.querySelector(s) }
 const _TMPL = $('#t');
 const IS_DEV = (window.location.host === "127.0.0.1:8080");
+
+/* ---- Login Auth ---- */
+let _authToken = null;
+let _loginTesting = false;
+
+function loginGetToken(user, pass) {
+  return btoa(user + ":" + pass);
+}
+
+function loginSetToken(token) {
+  _authToken = token;
+  if (token) sessionStorage.setItem('bruce_auth', token);
+  else sessionStorage.removeItem('bruce_auth');
+}
+
+function loginRestoreToken() {
+  var t = sessionStorage.getItem('bruce_auth');
+  if (t) { _authToken = t; return true; }
+  return false;
+}
+
+/* Try a request, return the HTTP status (0 = network error) */
+function loginTestRequest(token) {
+  return new Promise(function (resolve) {
+    var r = new XMLHttpRequest();
+    var url = IS_DEV ? "/bruce/systeminfo" : "/systeminfo";
+    r.open("GET", url, true);
+    r.timeout = 4000;
+    if (token) r.setRequestHeader("Authorization", "Basic " + token);
+    r.onload = function () { resolve(r.status); };
+    r.onerror = r.ontimeout = function () { resolve(0); };
+    r.send();
+  });
+}
+
+function loginShow() {
+  document.getElementById("login-btn").disabled = false;
+  document.getElementById("login-btn").textContent = "Log In";
+  document.getElementById("login-error").classList.add("hidden");
+  var ov = document.getElementById("login-overlay");
+  if (ov) ov.classList.remove("hidden");
+  setTimeout(function () { document.getElementById("login-username").focus(); }, 100);
+}
+
+function loginHide() {
+  var ov = document.getElementById("login-overlay");
+  if (ov) ov.classList.add("hidden");
+}
+
+async function loginAuthenticate(user, pass) {
+  if (_loginTesting) return;
+  _loginTesting = true;
+  var btn = document.getElementById("login-btn");
+  var err = document.getElementById("login-error");
+  err.classList.add("hidden");
+  btn.disabled = true;
+  btn.textContent = "Logging in...";
+
+  var token = loginGetToken(user, pass);
+  var status = await loginTestRequest(token);
+  _loginTesting = false;
+
+  if (status === 0) {
+    err.textContent = "Cannot reach device. Check connection.";
+    err.classList.remove("hidden");
+    btn.disabled = false;
+    btn.textContent = "Log In";
+  } else if (status === 401 || status === 403) {
+    err.textContent = "Invalid username or password.";
+    err.classList.remove("hidden");
+    btn.disabled = false;
+    btn.textContent = "Log In";
+  } else if (status >= 200 && status < 400) {
+    loginSetToken(token);
+    loginHide();
+    startApp();
+  } else {
+    err.textContent = "Unexpected server response (" + status + ").";
+    err.classList.remove("hidden");
+    btn.disabled = false;
+    btn.textContent = "Log In";
+  }
+}
+
+/* ---- End Login Auth ---- */
 const T = {
   master: _TMPL,
   fileRow: function () {
@@ -197,6 +282,7 @@ function _requestWithRetry(method, url, params, body, attempt) {
     }
     req.open(method, realUrl, true);
     req.timeout = REQ_TIMEOUT;
+    if (_authToken) req.setRequestHeader("Authorization", "Basic " + _authToken);
     req.onload = () => {
       if (req.status >= 200 && req.status < 300) {
         resolve(req.responseText);
@@ -989,8 +1075,7 @@ if (logoutBtn) {
     try {
       await requestGet("/logout");
     } catch (x) { /* ignore */ }
-    // Redirect to login page — clear any session state
-    window.location.href = '/logout';
+    window.location.href = '/logout.html';
   });
 }
 
@@ -1438,9 +1523,63 @@ uploadFile = function () {
   });
 };
 
-/* ---- Init ---- */
-(async function () {
-  ThemeCache.init();
+/* ---- Login event listeners ---- */
+document.getElementById("login-btn").addEventListener("click", function () {
+  this.disabled = true;
+  this.textContent = "Logging in...";
+  document.getElementById("login-error").classList.add("hidden");
+  loginAuthenticate(
+    document.getElementById("login-username").value.trim(),
+    document.getElementById("login-password").value
+  );
+});
+
+document.getElementById("login-password").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") document.getElementById("login-btn").click();
+});
+
+document.getElementById("login-username").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") document.getElementById("login-password").focus();
+});
+
+document.getElementById("password-toggle").addEventListener("click", function () {
+  var pw = document.getElementById("login-password");
+  this.classList.toggle("visible");
+  pw.type = pw.type === "password" ? "text" : "password";
+  this.title = pw.type === "password" ? "Show password" : "Hide password";
+});
+
+async function startApp() {
+  Dialog.loading.hide();
   await Promise.all([fetchSystemInfo(), fetchFiles("LittleFS", "/")]);
   setTimeout(function () { ThemeCache.updateDot(); }, 50);
+}
+
+/* ---- Init ---- */
+ThemeCache.init();
+(async function () {
+  if (IS_DEV) {
+    loginHide();
+    await startApp();
+    return;
+  }
+  /* 1) Try no auth — ESP32 might have auth disabled */
+  var s = await loginTestRequest(null);
+  if (s >= 200 && s < 400) {
+    loginHide();
+    await startApp();
+    return;
+  }
+  /* 2) Try stored session token */
+  if (loginRestoreToken()) {
+    s = await loginTestRequest(_authToken);
+    if (s >= 200 && s < 400) {
+      loginHide();
+      await startApp();
+      return;
+    }
+    loginSetToken(null);
+  }
+  /* 3) Show login form */
+  loginShow();
 })();

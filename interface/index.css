@@ -1082,13 +1082,13 @@ svg > line, svg > polyline, svg > polygon {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 4px 8px;
-  width: 140px;
+  width: 165px;
   outline: none;
   transition: border-color 0.15s ease, width 0.2s ease;
 }
 .search-input:focus {
   border-color: var(--color);
-  width: 180px;
+  width: 210px;
 }
 .search-input::placeholder {
   color: color-mix(in srgb, var(--color) 40%, transparent);
@@ -1137,9 +1137,31 @@ svg > line, svg > polyline, svg > polygon {
   margin-right: 4px;
   flex-shrink: 0;
   transition: transform 0.2s ease;
+  position: relative;
 }
 .theme-dot:hover {
   transform: scale(1.4);
+}
+.theme-dot::after {
+  content: "Current theme color";
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 500;
+  font-family: var(--font-mono);
+}
+.theme-dot:hover::after {
+  opacity: 1;
 }
 
 /* ---- NEW: Row selected state ---- */
@@ -1220,6 +1242,132 @@ select option {
   z-index: 300;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ---- Login Overlay ---- */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+}
+
+.login-card {
+  width: 340px;
+  max-width: 92vw;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 32px 28px;
+  text-align: center;
+  animation: loginIn 0.25s ease;
+}
+
+@keyframes loginIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-logo {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+
+.login-title {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  margin-bottom: 24px;
+}
+
+.login-body {
+  text-align: left;
+}
+
+.login-body label {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.login-body input[type="text"],
+.login-body input[type="password"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: 0.85rem;
+  outline: 0;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.login-body input:focus {
+  border-color: var(--color);
+}
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  padding-right: 36px !important;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+.password-toggle.visible svg:first-child {
+  display: none;
+}
+
+.password-toggle:not(.visible) svg:last-child {
+  display: none;
+}
+
+.login-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px 0;
+  font-size: 0.85rem;
+}
+
+.login-error {
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: #ff4444;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .login-card {
+    padding: 28px 20px;
+  }
 }
 
 

@@ -334,6 +334,18 @@
       </div>
     </div>
 
+    <div class="dialog serial hidden">
+      <div class="dialog-head">Serial Command</div>
+      <div class="dialog-body">
+        <input type="text" id="serial-input" placeholder="Search or type a command..." autocomplete="off" spellcheck="false">
+        <div class="serial-list" id="serial-list"></div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn-action" id="serial-send">Run</button>
+        <button class="btn-action act-dialog-close act-escape">Close</button>
+      </div>
+    </div>
+
     <!-- NEW: Custom confirmation dialog -->
     <div class="dialog custom-confirm hidden">
       <div class="dialog-head" id="confirm-title">Confirm</div>

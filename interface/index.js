@@ -49,7 +49,7 @@ async function loginAuthenticate(user, pass) {
 
   try {
     var body =
-      "usr=" + encodeURIComponent(user) + "&pwd=" + encodeURIComponent(pass);
+      "username=" + encodeURIComponent(user) + "&password=" + encodeURIComponent(pass);
     var r = new XMLHttpRequest();
     var url = IS_DEV ? "/bruce/login" : "/login";
     r.open("POST", url, true);
@@ -369,6 +369,206 @@ const LogViewer = {
   clear: function () {
     this._output.textContent = "";
   },
+};
+
+/* ---- Serial Command Dialog ---- */
+const SERIAL_COMMANDS = [
+  { cat: "Navigation", cmds: [
+    { c: "nav up [duration]", d: "Press Up button" },
+    { c: "nav down [duration]", d: "Press Down button" },
+    { c: "nav left [duration]", d: "Press Left button" },
+    { c: "nav right [duration]", d: "Press Right button" },
+    { c: "nav sel [duration]", d: "Press Select/OK" },
+    { c: "nav esc [duration]", d: "Press Back/Esc" },
+    { c: "nav next [duration]", d: "Next menu item" },
+    { c: "nav prev [duration]", d: "Previous menu item" },
+    { c: "nav nextpage [duration]", d: "Next page" },
+    { c: "nav prevpage [duration]", d: "Previous page" },
+    { c: "options <run>", d: "List or select a menu option" },
+    { c: "optionsJSON", d: "Options as JSON" }
+  ]},
+  { cat: "System Info", cmds: [
+    { c: "info", d: "Version, SDK, MAC, WiFi, Device" },
+    { c: "uptime", d: "Uptime since boot" },
+    { c: "date", d: "Current date/time" },
+    { c: "free", d: "Free heap & PSRAM" },
+    { c: "i2c", d: "Scan I2C bus" },
+    { c: "help", d: "List all commands" }
+  ]},
+  { cat: "Power", cmds: [
+    { c: "poweroff", d: "Deep sleep" },
+    { c: "reboot", d: "Reboot device" },
+    { c: "sleep", d: "Sleep mode" },
+    { c: "power off", d: "Deep sleep (subcommand)" },
+    { c: "power reboot", d: "Reboot (subcommand)" },
+    { c: "power sleep", d: "Sleep (subcommand)" }
+  ]},
+  { cat: "Display", cmds: [
+    { c: "display start", d: "Start async serial logging" },
+    { c: "display stop", d: "Stop async serial logging" },
+    { c: "display status", d: "Get logging state" },
+    { c: "display dump", d: "Dump binary log" },
+    { c: "display info", d: "Display info (res, rotation)" }
+  ]},
+  { cat: "Screen / UI", cmds: [
+    { c: "clock", d: "Show clock UI" },
+    { c: "screen br <0-255>", d: "Set brightness (0-255, maps to 0-100%)" },
+    { c: "screen color hex <hex>", d: "Set UI color (6 hex chars)" },
+    { c: "screen color rgb <r> <g> <b>", d: "Set UI color (0-255 each)" }
+  ]},
+  { cat: "Storage (top-level)", cmds: [
+    { c: "ls [path]", d: "List directory" },
+    { c: "cat <path>", d: "Read file contents" },
+    { c: "rm <path>", d: "Delete file" },
+    { c: "md <path>", d: "Create directory" },
+    { c: "rmdir <path>", d: "Remove directory" },
+    { c: "md5 <path>", d: "File MD5 hash" },
+    { c: "crc32 <path>", d: "File CRC32" }
+  ]},
+  { cat: "Storage (extended)", cmds: [
+    { c: "storage list [path]", d: "List directory" },
+    { c: "storage read <path>", d: "Read file" },
+    { c: "storage remove <path>", d: "Delete file" },
+    { c: "storage rename <path> <name>", d: "Rename file" },
+    { c: "storage copy <path> <dest>", d: "Copy file" },
+    { c: "storage mkdir <path>", d: "Create directory" },
+    { c: "storage rmdir <path>", d: "Remove directory" },
+    { c: "storage md5 <path>", d: "File MD5" },
+    { c: "storage crc32 <path>", d: "File CRC32" },
+    { c: "storage stat <path>", d: "File info (size, date)" },
+    { c: "storage free <sd|littlefs>", d: "Show free space" },
+    { c: "storage write <path> <size>", d: "Write file from serial" },
+    { c: "storage ymodem <path>", d: "Receive file via YModem" }
+  ]},
+  { cat: "Loader / App Launcher", cmds: [
+    { c: "loader list", d: "List available apps" },
+    { c: "loader open <appname>", d: "Launch an app" }
+  ]},
+  { cat: "IR", cmds: [
+    { c: "ir rx [--raw]", d: "Read IR signal (decoded or raw)" },
+    { c: "ir tx <proto> <addr> <cmd>", d: "Send IR (e.g. NEC 04000000 08000000)" },
+    { c: "ir tx_raw <freq> <samples>", d: "Send IR raw waveform" },
+    { c: "ir tx_from_file <path> [hideUI]", d: "Send IR from .ir file" },
+    { c: 'IRSend {"Protocol":"NEC","Data":"0x..."}', d: "Tasmota-compatible IR JSON" }
+  ]},
+  { cat: "RF / SubGHz", cmds: [
+    { c: "subghz rx <freq> [--raw]", d: "Read RF signal" },
+    { c: "subghz tx <key> <freq> <te> <cnt>", d: "Send RF code" },
+    { c: "subghz scan <start_mhz> <stop_mhz>", d: "Scan frequency range" },
+    { c: "subghz tx_from_file <path> [hideUI]", d: "Send RF from .sub file" },
+    { c: 'RfSend {"Data":"0x...","Bits":24}', d: "Tasmota-compatible RF JSON" }
+  ]},
+  { cat: "WiFi", cmds: [
+    { c: "wifi on", d: "Connect to known WiFi / start AP" },
+    { c: "wifi off", d: "Disconnect WiFi" },
+    { c: "wifi add <ssid> <pass>", d: "Add a WiFi credential" },
+    { c: "webui [--noAp]", d: "Start WebUI" },
+    { c: "arp", d: "ARP scan hosts" },
+    { c: "listen", d: "TCP port listener" },
+    { c: "sniffer", d: "Raw WiFi sniffer" }
+  ]},
+  { cat: "GPIO", cmds: [
+    { c: "gpio mode <pin> <0|1>", d: "Set pin mode (0=input, 1=output)" },
+    { c: "gpio set <pin> <0|1>", d: "Set pin (0=low, 1=high)" },
+    { c: "gpio read <pin>", d: "Read pin value" }
+  ]},
+  { cat: "Settings", cmds: [
+    { c: "settings", d: "View all settings" },
+    { c: "settings <name>", d: "View a single setting" },
+    { c: "settings <name> <value>", d: "Change a setting" },
+    { c: "factory_reset", d: "Reset to factory defaults" }
+  ]},
+  { cat: "Sound", cmds: [
+    { c: "tone <freq> <dur>", d: "Play tone (Hz, ms)" },
+    { c: "play <path_or_rtttl>", d: "Play audio file or RTTTL" },
+    { c: "tts <text>", d: "Text-to-speech" }
+  ]},
+  { cat: "BadUSB", cmds: [
+    { c: "badusb run_from_file <path>", d: "Run DuckyScript file" }
+  ]},
+  { cat: "JS Interpreter", cmds: [
+    { c: "js run_from_file <path>", d: "Run JavaScript file" },
+    { c: "js run_from_buffer <size>", d: "Run JS from serial input" },
+    { c: "js exit", d: "Exit JS interpreter" },
+    { c: "js <path>", d: "Run JS (flipper-compat shorthand)" }
+  ]},
+  { cat: "Crypto", cmds: [
+    { c: "crypto decrypt_from_file <path> <pwd>", d: "Decrypt an encrypted file" },
+    { c: "crypto encrypt_to_file <path> <pwd>", d: "Encrypt a file" },
+    { c: "crypto type_from_file <path> <pwd>", d: "Decrypt & type via HID" },
+    { c: "decrypt <path> <pwd>", d: "Decrypt (top-level alias)" },
+    { c: "encrypt <path> <pwd>", d: "Encrypt (top-level alias)" }
+  ]}
+];
+
+const SerialDialog = {
+  open: function () {
+    Dialog.hide();
+    Dialog._bg(true);
+    var d = document.querySelector(".dialog.serial");
+    d.classList.remove("hidden");
+    var inp = document.getElementById("serial-input");
+    inp.value = "";
+    this._buildList("");
+    inp.focus();
+    inp.selectionStart = inp.selectionEnd = inp.value.length;
+  },
+
+  _buildList: function (q) {
+    q = q.toLowerCase().trim();
+    var list = document.getElementById("serial-list");
+    list.innerHTML = "";
+
+    var totalMatch = 0;
+    SERIAL_COMMANDS.forEach(function (group) {
+      var matching = group.cmds.filter(function (cmd) {
+        return !q || cmd.c.toLowerCase().indexOf(q) !== -1 || cmd.d.toLowerCase().indexOf(q) !== -1;
+      });
+      if (!matching.length && q) return;
+
+      if (!q) {
+        var cat = document.createElement("div");
+        cat.className = "s-cat";
+        cat.textContent = group.cat;
+        list.appendChild(cat);
+      }
+      matching.forEach(function (cmd) {
+        var el = document.createElement("div");
+        el.className = "s-item";
+        var span = document.createElement("span");
+        span.textContent = cmd.c;
+        el.appendChild(span);
+        if (!q) {
+          var desc = document.createElement("span");
+          desc.className = "s-desc";
+          desc.textContent = cmd.d;
+          el.appendChild(desc);
+        }
+        el._cmd = cmd.c;
+        el.addEventListener("click", function () {
+          var inp = document.getElementById("serial-input");
+          inp.value = this._cmd;
+          inp.focus();
+        });
+        list.appendChild(el);
+        totalMatch++;
+      });
+    });
+
+    if (!list.children.length) {
+      var empty = document.createElement("div");
+      empty.className = "s-empty";
+      empty.textContent = "No matching commands for \u201c" + q + "\u201d.";
+      list.appendChild(empty);
+    }
+  },
+
+  send: function () {
+    var cmd = document.getElementById("serial-input").value.trim();
+    if (!cmd) { Toast.error("Type a command."); return; }
+    Dialog.hide();
+    runCommand(cmd);
+  }
 };
 
 const REQ_TIMEOUT = 10000;
@@ -1045,13 +1245,16 @@ $(".container").addEventListener("click", async (e) => {
     let action = oActionOInput.getAttribute("data-action");
     if (!action) return;
 
+    if (action === "serial") {
+      SerialDialog.open();
+      return;
+    }
+
     let filePath = currentPath;
     let d = Dialog.showOneInput(action);
     if (action.startsWith("rename")) {
       let row = oActionOInput.closest("tr");
       filePath = row.getAttribute("data-file") || row.getAttribute("data-path");
-    } else if (action === "serial") {
-      filePath = "";
     }
 
     d.setAttribute("data-cache", action + "|" + filePath);
@@ -1274,7 +1477,7 @@ if (logoutBtn) {
     } catch (x) {
       /* ignore */
     }
-    window.location.href = "/logout.html";
+    window.location.href = "/";
   });
 }
 
@@ -1746,8 +1949,8 @@ uploadFile = function () {
       else resolve();
     }
 
-    if (file.size > CHUNK_SIZE * 2) {
-      // Large file: use chunked upload
+    if (false) {
+      // Large file: use chunked upload (disabled - firmware doesn't support chunk reassembly)
       var chunkFileId = stringToId(filename + "_chunked");
       // Add chunk info to existing progress bar if available
       var existingBar = document.getElementById(chunkFileId);
@@ -1823,6 +2026,23 @@ document
     pw.type = pw.type === "password" ? "text" : "password";
     this.title = pw.type === "password" ? "Show password" : "Hide password";
   });
+
+/* ---- Serial Dialog event listeners ---- */
+/* ---- Serial Dialog event listeners ---- */
+function _serialFilter() {
+  var inp = document.getElementById("serial-input");
+  if (inp) SerialDialog._buildList(inp.value);
+}
+document.getElementById("serial-input").addEventListener("input", _serialFilter);
+document.getElementById("serial-input").addEventListener("keyup", _serialFilter);
+
+document.getElementById("serial-input").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") { e.preventDefault(); SerialDialog.send(); }
+});
+
+document.getElementById("serial-send").addEventListener("click", function () {
+  SerialDialog.send();
+});
 
 async function startApp() {
   Dialog.loading.hide();

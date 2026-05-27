@@ -1303,6 +1303,84 @@ select option {
   word-break: break-all;
 }
 
+/* ---- Serial Command Dialog ---- */
+.dialog.serial {
+  max-width: 480px;
+}
+
+.dialog.serial .dialog-body {
+  padding: 10px 14px;
+}
+
+.dialog.serial #serial-input {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--color);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 10px;
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.dialog.serial #serial-input:focus {
+  border-color: var(--color);
+}
+
+.serial-list {
+  margin-top: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--background);
+}
+
+.serial-list .s-cat {
+  padding: 5px 10px 3px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  opacity: 0.4;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: sticky;
+  top: 0;
+  background: var(--background);
+  z-index: 1;
+}
+
+.serial-list .s-item {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+}
+
+.serial-list .s-item:last-child {
+  border-bottom: none;
+}
+
+.serial-list .s-item:hover {
+  background: color-mix(in srgb, var(--color) 12%, transparent);
+}
+
+.serial-list .s-item .s-desc {
+  opacity: 0.45;
+  font-size: 0.65rem;
+  margin-left: 6px;
+}
+
+.serial-list .s-empty {
+  padding: 12px 10px;
+  font-size: 0.75rem;
+  opacity: 0.4;
+  text-align: center;
+}
+
 /* ---- Login Overlay ---- */
 .login-overlay {
   position: fixed;

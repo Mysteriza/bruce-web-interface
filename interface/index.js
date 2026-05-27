@@ -49,7 +49,10 @@ async function loginAuthenticate(user, pass) {
 
   try {
     var body =
-      "username=" + encodeURIComponent(user) + "&password=" + encodeURIComponent(pass);
+      "username=" +
+      encodeURIComponent(user) +
+      "&password=" +
+      encodeURIComponent(pass);
     var r = new XMLHttpRequest();
     var url = IS_DEV ? "/bruce/login" : "/login";
     r.open("POST", url, true);
@@ -144,38 +147,84 @@ const ThemeCache = {
 
 /* ---- NEW: Toast notification system ---- */
 const Toast = {
+  _queue: [],
+  _visible: 0,
+  _throttle: false,
+
   show(message, type, duration) {
-    type = type || "info";
-    duration = duration || 2500;
-    const container = document.getElementById("toast-container");
+    this._queue.push({
+      message: message,
+      type: type || "info",
+      duration: duration || 3500,
+    });
+    this._process();
+  },
+
+  _process: function () {
+    if (this._throttle) return;
+    if (!this._queue.length || this._visible >= 3) return;
+
+    this._throttle = true;
+    var item = this._queue.shift();
+    this._render(item);
+
+    var self = this;
+    setTimeout(function () {
+      self._throttle = false;
+      self._process();
+    }, 650);
+  },
+
+  _render: function (item) {
+    var container = document.getElementById("toast-container");
     if (!container) return;
-    const el = document.createElement("div");
-    el.className = "toast toast-" + type;
+    this._visible++;
+
+    var el = document.createElement("div");
+    el.className = "toast toast-" + item.type;
     el.innerHTML =
       '<span class="toast-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>' +
       '<span class="toast-msg">' +
-      this._esc(message) +
+      this._esc(item.message) +
       "</span>" +
       '<button class="toast-close">&times;</button>';
+
+    var self = this;
+    var timer = setTimeout(function () {
+      self._remove(el);
+    }, item.duration);
+
     el.querySelector(".toast-close").onclick = function () {
-      el.remove();
+      clearTimeout(timer);
+      self._remove(el);
     };
+
     container.appendChild(el);
-    setTimeout(function () {
-      if (el.parentNode) el.remove();
-    }, duration);
+    el.offsetHeight;
   },
+
+  _remove: function (el) {
+    if (!el || !el.parentNode) return;
+    var self = this;
+    el.classList.add("toast-out");
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      self._visible = Math.max(0, self._visible - 1);
+      self._process();
+    }, 250);
+  },
+
   success: function (m, d) {
-    Toast.show(m, "success", d);
+    this.show(m, "success", d);
   },
   error: function (m, d) {
-    Toast.show(m, "error", d);
+    this.show(m, "error", d);
   },
   warning: function (m, d) {
-    Toast.show(m, "warning", d);
+    this.show(m, "warning", d);
   },
   info: function (m, d) {
-    Toast.show(m, "info", d);
+    this.show(m, "info", d);
   },
   _esc: function (s) {
     var d = document.createElement("div");
@@ -373,132 +422,193 @@ const LogViewer = {
 
 /* ---- Serial Command Dialog ---- */
 const SERIAL_COMMANDS = [
-  { cat: "Navigation", cmds: [
-    { c: "nav up [duration]", d: "Press Up button" },
-    { c: "nav down [duration]", d: "Press Down button" },
-    { c: "nav left [duration]", d: "Press Left button" },
-    { c: "nav right [duration]", d: "Press Right button" },
-    { c: "nav sel [duration]", d: "Press Select/OK" },
-    { c: "nav esc [duration]", d: "Press Back/Esc" },
-    { c: "nav next [duration]", d: "Next menu item" },
-    { c: "nav prev [duration]", d: "Previous menu item" },
-    { c: "nav nextpage [duration]", d: "Next page" },
-    { c: "nav prevpage [duration]", d: "Previous page" },
-    { c: "options <run>", d: "List or select a menu option" },
-    { c: "optionsJSON", d: "Options as JSON" }
-  ]},
-  { cat: "System Info", cmds: [
-    { c: "info", d: "Version, SDK, MAC, WiFi, Device" },
-    { c: "uptime", d: "Uptime since boot" },
-    { c: "date", d: "Current date/time" },
-    { c: "free", d: "Free heap & PSRAM" },
-    { c: "i2c", d: "Scan I2C bus" },
-    { c: "help", d: "List all commands" }
-  ]},
-  { cat: "Power", cmds: [
-    { c: "poweroff", d: "Deep sleep" },
-    { c: "reboot", d: "Reboot device" },
-    { c: "sleep", d: "Sleep mode" },
-    { c: "power off", d: "Deep sleep (subcommand)" },
-    { c: "power reboot", d: "Reboot (subcommand)" },
-    { c: "power sleep", d: "Sleep (subcommand)" }
-  ]},
-  { cat: "Display", cmds: [
-    { c: "display start", d: "Start async serial logging" },
-    { c: "display stop", d: "Stop async serial logging" },
-    { c: "display status", d: "Get logging state" },
-    { c: "display dump", d: "Dump binary log" },
-    { c: "display info", d: "Display info (res, rotation)" }
-  ]},
-  { cat: "Screen / UI", cmds: [
-    { c: "clock", d: "Show clock UI" },
-    { c: "screen br <0-255>", d: "Set brightness (0-255, maps to 0-100%)" },
-    { c: "screen color hex <hex>", d: "Set UI color (6 hex chars)" },
-    { c: "screen color rgb <r> <g> <b>", d: "Set UI color (0-255 each)" }
-  ]},
-  { cat: "Storage (top-level)", cmds: [
-    { c: "ls [path]", d: "List directory" },
-    { c: "cat <path>", d: "Read file contents" },
-    { c: "rm <path>", d: "Delete file" },
-    { c: "md <path>", d: "Create directory" },
-    { c: "rmdir <path>", d: "Remove directory" },
-    { c: "md5 <path>", d: "File MD5 hash" },
-    { c: "crc32 <path>", d: "File CRC32" }
-  ]},
-  { cat: "Storage (extended)", cmds: [
-    { c: "storage list [path]", d: "List directory" },
-    { c: "storage read <path>", d: "Read file" },
-    { c: "storage remove <path>", d: "Delete file" },
-    { c: "storage rename <path> <name>", d: "Rename file" },
-    { c: "storage copy <path> <dest>", d: "Copy file" },
-    { c: "storage mkdir <path>", d: "Create directory" },
-    { c: "storage rmdir <path>", d: "Remove directory" },
-    { c: "storage md5 <path>", d: "File MD5" },
-    { c: "storage crc32 <path>", d: "File CRC32" },
-    { c: "storage stat <path>", d: "File info (size, date)" },
-    { c: "storage free <sd|littlefs>", d: "Show free space" },
-    { c: "storage write <path> <size>", d: "Write file from serial" },
-    { c: "storage ymodem <path>", d: "Receive file via YModem" }
-  ]},
-  { cat: "Loader / App Launcher", cmds: [
-    { c: "loader list", d: "List available apps" },
-    { c: "loader open <appname>", d: "Launch an app" }
-  ]},
-  { cat: "IR", cmds: [
-    { c: "ir rx [--raw]", d: "Read IR signal (decoded or raw)" },
-    { c: "ir tx <proto> <addr> <cmd>", d: "Send IR (e.g. NEC 04000000 08000000)" },
-    { c: "ir tx_raw <freq> <samples>", d: "Send IR raw waveform" },
-    { c: "ir tx_from_file <path> [hideUI]", d: "Send IR from .ir file" },
-    { c: 'IRSend {"Protocol":"NEC","Data":"0x..."}', d: "Tasmota-compatible IR JSON" }
-  ]},
-  { cat: "RF / SubGHz", cmds: [
-    { c: "subghz rx <freq> [--raw]", d: "Read RF signal" },
-    { c: "subghz tx <key> <freq> <te> <cnt>", d: "Send RF code" },
-    { c: "subghz scan <start_mhz> <stop_mhz>", d: "Scan frequency range" },
-    { c: "subghz tx_from_file <path> [hideUI]", d: "Send RF from .sub file" },
-    { c: 'RfSend {"Data":"0x...","Bits":24}', d: "Tasmota-compatible RF JSON" }
-  ]},
-  { cat: "WiFi", cmds: [
-    { c: "wifi on", d: "Connect to known WiFi / start AP" },
-    { c: "wifi off", d: "Disconnect WiFi" },
-    { c: "wifi add <ssid> <pass>", d: "Add a WiFi credential" },
-    { c: "webui [--noAp]", d: "Start WebUI" },
-    { c: "arp", d: "ARP scan hosts" },
-    { c: "listen", d: "TCP port listener" },
-    { c: "sniffer", d: "Raw WiFi sniffer" }
-  ]},
-  { cat: "GPIO", cmds: [
-    { c: "gpio mode <pin> <0|1>", d: "Set pin mode (0=input, 1=output)" },
-    { c: "gpio set <pin> <0|1>", d: "Set pin (0=low, 1=high)" },
-    { c: "gpio read <pin>", d: "Read pin value" }
-  ]},
-  { cat: "Settings", cmds: [
-    { c: "settings", d: "View all settings" },
-    { c: "settings <name>", d: "View a single setting" },
-    { c: "settings <name> <value>", d: "Change a setting" },
-    { c: "factory_reset", d: "Reset to factory defaults" }
-  ]},
-  { cat: "Sound", cmds: [
-    { c: "tone <freq> <dur>", d: "Play tone (Hz, ms)" },
-    { c: "play <path_or_rtttl>", d: "Play audio file or RTTTL" },
-    { c: "tts <text>", d: "Text-to-speech" }
-  ]},
-  { cat: "BadUSB", cmds: [
-    { c: "badusb run_from_file <path>", d: "Run DuckyScript file" }
-  ]},
-  { cat: "JS Interpreter", cmds: [
-    { c: "js run_from_file <path>", d: "Run JavaScript file" },
-    { c: "js run_from_buffer <size>", d: "Run JS from serial input" },
-    { c: "js exit", d: "Exit JS interpreter" },
-    { c: "js <path>", d: "Run JS (flipper-compat shorthand)" }
-  ]},
-  { cat: "Crypto", cmds: [
-    { c: "crypto decrypt_from_file <path> <pwd>", d: "Decrypt an encrypted file" },
-    { c: "crypto encrypt_to_file <path> <pwd>", d: "Encrypt a file" },
-    { c: "crypto type_from_file <path> <pwd>", d: "Decrypt & type via HID" },
-    { c: "decrypt <path> <pwd>", d: "Decrypt (top-level alias)" },
-    { c: "encrypt <path> <pwd>", d: "Encrypt (top-level alias)" }
-  ]}
+  {
+    cat: "Navigation",
+    cmds: [
+      { c: "nav up [duration]", d: "Press Up button" },
+      { c: "nav down [duration]", d: "Press Down button" },
+      { c: "nav left [duration]", d: "Press Left button" },
+      { c: "nav right [duration]", d: "Press Right button" },
+      { c: "nav sel [duration]", d: "Press Select/OK" },
+      { c: "nav esc [duration]", d: "Press Back/Esc" },
+      { c: "nav next [duration]", d: "Next menu item" },
+      { c: "nav prev [duration]", d: "Previous menu item" },
+      { c: "nav nextpage [duration]", d: "Next page" },
+      { c: "nav prevpage [duration]", d: "Previous page" },
+      { c: "options <run>", d: "List or select a menu option" },
+      { c: "optionsJSON", d: "Options as JSON" },
+    ],
+  },
+  {
+    cat: "System Info",
+    cmds: [
+      { c: "info", d: "Version, SDK, MAC, WiFi, Device" },
+      { c: "uptime", d: "Uptime since boot" },
+      { c: "date", d: "Current date/time" },
+      { c: "free", d: "Free heap & PSRAM" },
+      { c: "i2c", d: "Scan I2C bus" },
+      { c: "help", d: "List all commands" },
+    ],
+  },
+  {
+    cat: "Power",
+    cmds: [
+      { c: "poweroff", d: "Deep sleep" },
+      { c: "reboot", d: "Reboot device" },
+      { c: "sleep", d: "Sleep mode" },
+      { c: "power off", d: "Deep sleep (subcommand)" },
+      { c: "power reboot", d: "Reboot (subcommand)" },
+      { c: "power sleep", d: "Sleep (subcommand)" },
+    ],
+  },
+  {
+    cat: "Display",
+    cmds: [
+      { c: "display start", d: "Start async serial logging" },
+      { c: "display stop", d: "Stop async serial logging" },
+      { c: "display status", d: "Get logging state" },
+      { c: "display dump", d: "Dump binary log" },
+      { c: "display info", d: "Display info (res, rotation)" },
+    ],
+  },
+  {
+    cat: "Screen / UI",
+    cmds: [
+      { c: "clock", d: "Show clock UI" },
+      { c: "screen br <0-255>", d: "Set brightness (0-255, maps to 0-100%)" },
+      { c: "screen color hex <hex>", d: "Set UI color (6 hex chars)" },
+      { c: "screen color rgb <r> <g> <b>", d: "Set UI color (0-255 each)" },
+    ],
+  },
+  {
+    cat: "Storage (top-level)",
+    cmds: [
+      { c: "ls [path]", d: "List directory" },
+      { c: "cat <path>", d: "Read file contents" },
+      { c: "rm <path>", d: "Delete file" },
+      { c: "md <path>", d: "Create directory" },
+      { c: "rmdir <path>", d: "Remove directory" },
+      { c: "md5 <path>", d: "File MD5 hash" },
+      { c: "crc32 <path>", d: "File CRC32" },
+    ],
+  },
+  {
+    cat: "Storage (extended)",
+    cmds: [
+      { c: "storage list [path]", d: "List directory" },
+      { c: "storage read <path>", d: "Read file" },
+      { c: "storage remove <path>", d: "Delete file" },
+      { c: "storage rename <path> <name>", d: "Rename file" },
+      { c: "storage copy <path> <dest>", d: "Copy file" },
+      { c: "storage mkdir <path>", d: "Create directory" },
+      { c: "storage rmdir <path>", d: "Remove directory" },
+      { c: "storage md5 <path>", d: "File MD5" },
+      { c: "storage crc32 <path>", d: "File CRC32" },
+      { c: "storage stat <path>", d: "File info (size, date)" },
+      { c: "storage free <sd|littlefs>", d: "Show free space" },
+      { c: "storage write <path> <size>", d: "Write file from serial" },
+      { c: "storage ymodem <path>", d: "Receive file via YModem" },
+    ],
+  },
+  {
+    cat: "Loader / App Launcher",
+    cmds: [
+      { c: "loader list", d: "List available apps" },
+      { c: "loader open <appname>", d: "Launch an app" },
+    ],
+  },
+  {
+    cat: "IR",
+    cmds: [
+      { c: "ir rx [--raw]", d: "Read IR signal (decoded or raw)" },
+      {
+        c: "ir tx <proto> <addr> <cmd>",
+        d: "Send IR (e.g. NEC 04000000 08000000)",
+      },
+      { c: "ir tx_raw <freq> <samples>", d: "Send IR raw waveform" },
+      { c: "ir tx_from_file <path> [hideUI]", d: "Send IR from .ir file" },
+      {
+        c: 'IRSend {"Protocol":"NEC","Data":"0x..."}',
+        d: "Tasmota-compatible IR JSON",
+      },
+    ],
+  },
+  {
+    cat: "RF / SubGHz",
+    cmds: [
+      { c: "subghz rx <freq> [--raw]", d: "Read RF signal" },
+      { c: "subghz tx <key> <freq> <te> <cnt>", d: "Send RF code" },
+      { c: "subghz scan <start_mhz> <stop_mhz>", d: "Scan frequency range" },
+      { c: "subghz tx_from_file <path> [hideUI]", d: "Send RF from .sub file" },
+      {
+        c: 'RfSend {"Data":"0x...","Bits":24}',
+        d: "Tasmota-compatible RF JSON",
+      },
+    ],
+  },
+  {
+    cat: "WiFi",
+    cmds: [
+      { c: "wifi on", d: "Connect to known WiFi / start AP" },
+      { c: "wifi off", d: "Disconnect WiFi" },
+      { c: "wifi add <ssid> <pass>", d: "Add a WiFi credential" },
+      { c: "webui [--noAp]", d: "Start WebUI" },
+      { c: "arp", d: "ARP scan hosts" },
+      { c: "listen", d: "TCP port listener" },
+      { c: "sniffer", d: "Raw WiFi sniffer" },
+    ],
+  },
+  {
+    cat: "GPIO",
+    cmds: [
+      { c: "gpio mode <pin> <0|1>", d: "Set pin mode (0=input, 1=output)" },
+      { c: "gpio set <pin> <0|1>", d: "Set pin (0=low, 1=high)" },
+      { c: "gpio read <pin>", d: "Read pin value" },
+    ],
+  },
+  {
+    cat: "Settings",
+    cmds: [
+      { c: "settings", d: "View all settings" },
+      { c: "settings <name>", d: "View a single setting" },
+      { c: "settings <name> <value>", d: "Change a setting" },
+      { c: "factory_reset", d: "Reset to factory defaults" },
+    ],
+  },
+  {
+    cat: "Sound",
+    cmds: [
+      { c: "tone <freq> <dur>", d: "Play tone (Hz, ms)" },
+      { c: "play <path_or_rtttl>", d: "Play audio file or RTTTL" },
+      { c: "tts <text>", d: "Text-to-speech" },
+    ],
+  },
+  {
+    cat: "BadUSB",
+    cmds: [{ c: "badusb run_from_file <path>", d: "Run DuckyScript file" }],
+  },
+  {
+    cat: "JS Interpreter",
+    cmds: [
+      { c: "js run_from_file <path>", d: "Run JavaScript file" },
+      { c: "js run_from_buffer <size>", d: "Run JS from serial input" },
+      { c: "js exit", d: "Exit JS interpreter" },
+      { c: "js <path>", d: "Run JS (flipper-compat shorthand)" },
+    ],
+  },
+  {
+    cat: "Crypto",
+    cmds: [
+      {
+        c: "crypto decrypt_from_file <path> <pwd>",
+        d: "Decrypt an encrypted file",
+      },
+      { c: "crypto encrypt_to_file <path> <pwd>", d: "Encrypt a file" },
+      { c: "crypto type_from_file <path> <pwd>", d: "Decrypt & type via HID" },
+      { c: "decrypt <path> <pwd>", d: "Decrypt (top-level alias)" },
+      { c: "encrypt <path> <pwd>", d: "Encrypt (top-level alias)" },
+    ],
+  },
 ];
 
 const SerialDialog = {
@@ -522,7 +632,11 @@ const SerialDialog = {
     var totalMatch = 0;
     SERIAL_COMMANDS.forEach(function (group) {
       var matching = group.cmds.filter(function (cmd) {
-        return !q || cmd.c.toLowerCase().indexOf(q) !== -1 || cmd.d.toLowerCase().indexOf(q) !== -1;
+        return (
+          !q ||
+          cmd.c.toLowerCase().indexOf(q) !== -1 ||
+          cmd.d.toLowerCase().indexOf(q) !== -1
+        );
       });
       if (!matching.length && q) return;
 
@@ -565,10 +679,13 @@ const SerialDialog = {
 
   send: function () {
     var cmd = document.getElementById("serial-input").value.trim();
-    if (!cmd) { Toast.error("Type a command."); return; }
+    if (!cmd) {
+      Toast.error("Type a command.");
+      return;
+    }
     Dialog.hide();
     runCommand(cmd);
-  }
+  },
 };
 
 const REQ_TIMEOUT = 10000;
@@ -757,10 +874,13 @@ async function fetchFiles(drive, path) {
   Dialog.loading.hide();
 }
 
+let _sysInfoErrorShown = false;
+
 async function fetchSystemInfo() {
   Dialog.loading.show("Fetching system info...");
   try {
     let req = await requestGet("/systeminfo");
+    _sysInfoErrorShown = false;
     let info = JSON.parse(req);
     var ver = info.BRUCE_VERSION || "?";
     $(".bruce-version").textContent = ver;
@@ -783,9 +903,12 @@ async function fetchSystemInfo() {
     fetchOptionalInfo("battery", "sys-battery");
     fetchOptionalInfo("heap", "sys-heap");
   } catch (e) {
-    Toast.error(
-      "Could not retrieve device info. The device may be disconnected.",
-    );
+    if (!_sysInfoErrorShown) {
+      _sysInfoErrorShown = true;
+      Toast.error(
+        "Could not retrieve device info. The device may be disconnected.",
+      );
+    }
   }
   Dialog.loading.hide();
 }
@@ -2033,12 +2156,21 @@ function _serialFilter() {
   var inp = document.getElementById("serial-input");
   if (inp) SerialDialog._buildList(inp.value);
 }
-document.getElementById("serial-input").addEventListener("input", _serialFilter);
-document.getElementById("serial-input").addEventListener("keyup", _serialFilter);
+document
+  .getElementById("serial-input")
+  .addEventListener("input", _serialFilter);
+document
+  .getElementById("serial-input")
+  .addEventListener("keyup", _serialFilter);
 
-document.getElementById("serial-input").addEventListener("keydown", function (e) {
-  if (e.key === "Enter") { e.preventDefault(); SerialDialog.send(); }
-});
+document
+  .getElementById("serial-input")
+  .addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      SerialDialog.send();
+    }
+  });
 
 document.getElementById("serial-send").addEventListener("click", function () {
   SerialDialog.send();

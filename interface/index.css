@@ -159,9 +159,6 @@ svg > line, svg > polyline, svg > polygon {
     background: var(--surface);
 }
 
-.container .content {
-}
-
 .container .header {
     display: flex;
     justify-content: space-between;
@@ -602,11 +599,6 @@ svg > line, svg > polyline, svg > polygon {
     background-color: var(--background);
 }
 
-.dialog.status .dialog-body {
-    padding: 10px 0;
-    text-align: center;
-}
-
 .dialog.setting .dialog-body {
     display: flex;
     flex-direction: column;
@@ -885,11 +877,6 @@ svg > line, svg > polyline, svg > polygon {
   border-radius: var(--radius);
   background: var(--surface);
   font-size: 0.9rem;
-}
-
-/* Active drive highlight */
-.block-space.active {
-  color: var(--color);
 }
 
 /* Editor textarea specific */
@@ -1179,13 +1166,6 @@ svg > line, svg > polyline, svg > polygon {
 }
 .file-row.selected td {
   border-bottom-color: color-mix(in srgb, var(--color) 20%, var(--border));
-}
-
-/* ---- NEW: Chunked upload indicator ---- */
-.chunk-info {
-  font-size: 0.7rem;
-  opacity: 0.5;
-  margin-top: 2px;
 }
 
 /* ---- NEW: Logout button (danger/destructive style) ---- */

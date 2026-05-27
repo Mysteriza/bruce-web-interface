@@ -2,7 +2,9 @@ function $(s) {
   return document.querySelector(s);
 }
 const _TMPL = $("#t");
-const IS_DEV = window.location.host === "127.0.0.1:8080";
+const IS_DEV =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
 
 /* ---- Login Auth ---- */
 let _loginTesting = false;
@@ -93,18 +95,6 @@ async function loginAuthenticate(user, pass) {
 /* ---- End Login Auth ---- */
 const T = {
   master: _TMPL,
-  fileRow: function () {
-    const tmp = document.createElement("template");
-    tmp.innerHTML =
-      this.master.content.querySelector("table tr.file-row").outerHTML;
-    return tmp.content;
-  },
-  pathRow: function () {
-    const tmp = document.createElement("template");
-    tmp.innerHTML =
-      this.master.content.querySelector("table tr.path-row").outerHTML;
-    return tmp.content;
-  },
   uploadLoading: function () {
     const tmp = document.createElement("template");
     tmp.innerHTML =
@@ -220,12 +210,6 @@ const Toast = {
   error: function (m, d) {
     this.show(m, "error", d);
   },
-  warning: function (m, d) {
-    this.show(m, "warning", d);
-  },
-  info: function (m, d) {
-    this.show(m, "info", d);
-  },
   _esc: function (s) {
     var d = document.createElement("div");
     d.textContent = s;
@@ -250,7 +234,6 @@ const DIALOG_FORM = {
     label: "File Name:",
     action: "Create File",
   },
-  serial: { title: "Serial Command", label: "Command:", action: "Run" },
 };
 
 /* ---- ORIGINAL Dialog (kept intact, with .confirm() added) ---- */
@@ -367,10 +350,6 @@ const LogViewer = {
     this._output.textContent = "Connecting...";
     Dialog.show("logviewer");
     this._poll();
-  },
-
-  close: function () {
-    this._stop();
   },
 
   _poll: async function () {
@@ -629,7 +608,6 @@ const SerialDialog = {
     var list = document.getElementById("serial-list");
     list.innerHTML = "";
 
-    var totalMatch = 0;
     SERIAL_COMMANDS.forEach(function (group) {
       var matching = group.cmds.filter(function (cmd) {
         return (
@@ -665,7 +643,6 @@ const SerialDialog = {
           inp.focus();
         });
         list.appendChild(el);
-        totalMatch++;
       });
     });
 
@@ -1507,10 +1484,6 @@ $(".act-save-oinput-file").addEventListener("click", async (e) => {
         name: path.trimEnd("/") + "/" + fileName,
       });
       await requestGet("/file?" + urlQuery.toString());
-    } else if (actionType === "serial") {
-      Dialog.loading.show("Running Serial Command...");
-      await runCommand(fileName);
-      refreshList = false;
     }
   } catch (err) {
     Toast.error("Something went wrong. Please try again.");
@@ -1985,69 +1958,7 @@ renderFileRow = function (fileList) {
   });
 };
 
-/* ---- NEW: Chunked upload for large files ---- */
-var CHUNK_SIZE = 256 * 1024; // 256KB
-function uploadFileChunked(file) {
-  return new Promise(function (resolve, reject) {
-    var fileId = stringToId(
-      (file.webkitRelativePath || file.name) + "_chunked",
-    );
-    var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    var chunkIndex = 0;
-
-    function sendChunk() {
-      var start = chunkIndex * CHUNK_SIZE;
-      var end = Math.min(start + CHUNK_SIZE, file.size);
-      var blob = file.slice(start, end);
-      var fd = new FormData();
-      var filename = (file.webkitRelativePath || file.name) + ".chunk";
-      fd.append("file", blob, filename);
-      fd.append("folder", currentPath);
-      fd.append("fs", currentDrive);
-      fd.append("chunkIndex", chunkIndex);
-      fd.append("totalChunks", totalChunks);
-      fd.append("originalName", file.webkitRelativePath || file.name);
-
-      var realUrl = "/upload";
-      if (IS_DEV) realUrl = "/bruce" + realUrl;
-      var req = new XMLHttpRequest();
-      req.upload.onprogress = function (e) {
-        if (e.lengthComputable) {
-          var bar = document.getElementById(fileId);
-          if (bar) {
-            var overallPct =
-              ((chunkIndex * CHUNK_SIZE + e.loaded) / file.size) * 100;
-            bar.style.width = Math.min(100, Math.round(overallPct)) + "%";
-          }
-        }
-      };
-      req.onload = function () {
-        if (req.status >= 200 && req.status < 300) {
-          chunkIndex++;
-          if (chunkIndex < totalChunks) {
-            sendChunk();
-          } else {
-            resolve();
-          }
-        } else {
-          reject(new Error("Chunk upload failed at " + chunkIndex));
-        }
-      };
-      req.onerror = function () {
-        reject(new Error("Network error"));
-      };
-      req.onabort = function () {
-        reject(new Error("Aborted"));
-      };
-      req.open("POST", realUrl, true);
-      req.send(fd);
-    }
-
-    sendChunk();
-  });
-}
-
-// Override upload to use chunked for large files
+/* ---- Upload file ---- */
 uploadFile = function () {
   if (_queueUpload.length === 0) {
     _runningUpload = false;
@@ -2063,58 +1974,38 @@ uploadFile = function () {
     var filename = file.webkitRelativePath || file.name;
     var fileId = stringToId(filename);
 
-    // Show progress bar for this file
-    var bar = document.getElementById(fileId);
-
     function onDone(err) {
-      uploadFile(); // process next in queue
+      uploadFile();
       if (err) reject(err);
       else resolve();
     }
 
-    if (false) {
-      // Large file: use chunked upload (disabled - firmware doesn't support chunk reassembly)
-      var chunkFileId = stringToId(filename + "_chunked");
-      // Add chunk info to existing progress bar if available
-      var existingBar = document.getElementById(chunkFileId);
-      if (!existingBar && bar) bar.id = chunkFileId;
-
-      uploadFileChunked(file)
-        .then(function () {
-          onDone(null);
-        })
-        .catch(function (e) {
-          onDone(e);
-        });
-    } else {
-      // Small file: normal upload
-      var fd = new FormData();
-      fd.append("file", file, filename);
-      fd.append("folder", currentPath);
-      fd.append("fs", currentDrive);
-      var realUrl = "/upload";
-      if (IS_DEV) realUrl = "/bruce" + realUrl;
-      var req = new XMLHttpRequest();
-      req.upload.onprogress = function (e) {
-        if (e.lengthComputable) {
-          var pct = Math.round((e.loaded / e.total) * 100);
-          var progressEl = document.getElementById(fileId);
-          if (progressEl) progressEl.style.width = pct + "%";
-        }
-      };
-      req.onload = function () {
-        if (req.status >= 200 && req.status < 300) onDone(null);
-        else onDone(new Error("Upload failed"));
-      };
-      req.onabort = function () {
-        onDone(new Error("Aborted"));
-      };
-      req.onerror = function () {
-        onDone(new Error("Network error"));
-      };
-      req.open("POST", realUrl, true);
-      req.send(fd);
-    }
+    var fd = new FormData();
+    fd.append("file", file, filename);
+    fd.append("folder", currentPath);
+    fd.append("fs", currentDrive);
+    var realUrl = "/upload";
+    if (IS_DEV) realUrl = "/bruce" + realUrl;
+    var req = new XMLHttpRequest();
+    req.upload.onprogress = function (e) {
+      if (e.lengthComputable) {
+        var pct = Math.round((e.loaded / e.total) * 100);
+        var progressEl = document.getElementById(fileId);
+        if (progressEl) progressEl.style.width = pct + "%";
+      }
+    };
+    req.onload = function () {
+      if (req.status >= 200 && req.status < 300) onDone(null);
+      else onDone(new Error("Upload failed"));
+    };
+    req.onabort = function () {
+      onDone(new Error("Aborted"));
+    };
+    req.onerror = function () {
+      onDone(new Error("Network error"));
+    };
+    req.open("POST", realUrl, true);
+    req.send(fd);
   });
 };
 
@@ -2151,17 +2042,12 @@ document
   });
 
 /* ---- Serial Dialog event listeners ---- */
-/* ---- Serial Dialog event listeners ---- */
-function _serialFilter() {
-  var inp = document.getElementById("serial-input");
-  if (inp) SerialDialog._buildList(inp.value);
-}
 document
   .getElementById("serial-input")
-  .addEventListener("input", _serialFilter);
-document
-  .getElementById("serial-input")
-  .addEventListener("keyup", _serialFilter);
+  .addEventListener("input", function () {
+    var inp = document.getElementById("serial-input");
+    if (inp) SerialDialog._buildList(inp.value);
+  });
 
 document
   .getElementById("serial-input")
